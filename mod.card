@@ -24,7 +24,6 @@ return {
       "there is no ruled icon column either, unlike the Pokedex list: the rule needs the names to start at 32 and they start at 24, and the eight pixels can only come out of the name column -- which holds a NICKNAME, and cutting CHARMANDER to CHARMANDE to make room for a hairline is not a trade worth making",
       "the HP numbers keep their %3d/%3d padding rather than becoming variable width, because the bar's right cap sits under the first glyph and the pad's SPACE over that cap is what keeps a two-digit HP from colliding with it; a three-digit HP still lands a digit there, exactly as it does in vanilla",
       "only draw and sgbPalettes are replaced -- every mode, key and callback is still the engine's -- so anything wrong with what the party menu DOES is not this mod",
-      "the docs/lineup.png shipped here is the shared family strip and rings Gen1Dex rather than this mod, until a Gen1Party-ringed one is generated",
       "the suite asserts WHERE each prompt lands rather than what it says, because the words belong to the engine and it rewords them: hardcoding the swap prompt cost one red CI run when #1610 changed it from Move to where? to Move POKeMON where?",
     },
   },

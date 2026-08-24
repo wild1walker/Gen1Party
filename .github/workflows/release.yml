@@ -28,6 +28,13 @@ on:
     paths-ignore:
       - '.github/**'
       - '**.md'
+      # Page furniture, not mod code. docs/ is export-ignored and mod.card is
+      # read by tooling and the manager's detail pane, so neither changes a
+      # byte of what a player installs -- and a release whose archive differs
+      # only in its version number is churn with nothing to say for itself.
+      - 'docs/**'
+      - 'mod.card'
+      - '.gitattributes'
   workflow_dispatch:
     inputs:
       version:

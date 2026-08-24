@@ -1,0 +1,23 @@
+{
+  "id": "Gen1Party",
+  "name": "Gen1Party",
+  "version": "1.0.0",
+  "api": 2,
+  "games": ["gen1"],
+  "entry": "main.lua",
+  "profile": "content",
+  "category": "UI",
+  "game_version": ">=0.0.0-0 <2.0.0",
+  "priority": 1100,
+  "dependencies": [],
+  "optional_dependencies": [
+    "unique_menu_icons",
+    "new_icons",
+    "Gen1Dex",
+    "Gen1BillsBox"
+  ],
+  "conflicts": ["modern_party_ui", "gen1recomp-modern-party-ui"],
+  "permissions": ["engine_internals"],
+  "description": "The party menu drawn like the rest of the set: every POKeMON in its own species colours instead of all six sharing one, and the status and HP numbers pulled in off the screen edge so an FNT reads as placed rather than clipped. A replacement for how the party LOOKS and not for what it does -- the field menu, the battle switch, the item target, the TM/HM teach list and the SOFTBOILED donor all keep their own rules.",
+  "github": "wild1walker/Gen1Party"
+}

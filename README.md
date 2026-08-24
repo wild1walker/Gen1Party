@@ -56,11 +56,17 @@ Nothing was given up to pay for it:
   width, because that padding is load-bearing: the bar's right cap sits under
   the first glyph, and a *space* over that cap is what stops the two colliding.
 
-### One footer, not three
+### One footer
 
-Three of the seven modes used to print a bare line on the bottom row while the
-other four printed into the standard text box. They all use the box now, which
-is the same `Font.drawBox` chrome the rest of the set frames with.
+Every mode prints into the standard text box — the same `Font.drawBox` chrome
+the rest of the set frames with.
+
+This is **not** a difference from current Gen1Recomp. When this screen was
+written, three of the seven modes printed a bare line on the bottom row while
+the other four used the box, and unifying them was a change. The engine landed
+the same unification in [#1610](https://github.com/bryanthaboi/gen1recomp) at
+about the same time, so on a current build this mod simply matches it. It is
+kept here so the mod behaves the same on either engine.
 
 ---
 

@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.0.1
+
+Fixes the test suite against a current Gen1Recomp, and corrects a claim in the
+docs. No change to what the screen draws.
+
+- **CI was red on 1.0.0.** The suite spelled out the swap prompt ("Move to
+  where?"), and the engine had reworded it to "Move POKeMON where?" and routed
+  it through data.text (#1610). The suite now takes every prompt from
+  bottomMessage() and asserts only WHERE the lines land -- the words belong to
+  the engine, the layout is this mod's. Three more modes are covered the same
+  way, so the next reword cannot break the build.
+- The "one footer, not three" line in the README, CHANGELOG and mod.card
+  claimed as a difference something the engine itself now does: #1610 unified
+  the bare bottom-row prompts into the text box at about the same time this was
+  written. The mod still does it, so it behaves the same on either engine, but
+  it is no longer a difference from a current build and no longer described as
+  one.
+- Suite is 110 checks, up from 100, and now runs against the engine commit CI
+  actually checks out.
+
 ## 1.0.0
 
 First release.
@@ -35,9 +55,10 @@ First release.
 
 ### The footer
 
-- All seven modes print into the standard text box. Three of them used to print
-  a bare line on the bottom row instead, so the footer was three shapes rather
-  than one.
+- All seven modes print into the standard text box, so the footer is one shape
+  rather than three. On an engine from before #1610 that is a change (three
+  modes printed a bare bottom-row line); on a current one it matches what the
+  engine now does, and is kept so the mod behaves the same on either.
 
 ### Elsewhere
 

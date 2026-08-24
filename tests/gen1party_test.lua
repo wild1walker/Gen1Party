@@ -322,22 +322,62 @@ do
 end
 
 do
-  -- A swap in progress prints its prompt and the hollow marker, and the
-  -- prompt goes in the message box like every other mode's.
+  -- A swap in progress prints its prompt into the message box, like every
+  -- other mode's.
+  --
+  -- The prompt is taken from bottomMessage() rather than written out here.
+  -- Hardcoding it cost a red CI run once already: the engine reworded the swap
+  -- prompt from "Move to where?" to "Move POKéMON\nwhere?" and routed it
+  -- through data.text (#1610), and a suite that spells the words out is
+  -- asserting the ENGINE's copy rather than this mod's layout. What this mod
+  -- is responsible for is WHERE the line lands, not what it says.
   local game = fakeGame(FULL)
   local menu = factory.new(game)
   menu.swapFrom = 2
   menu.index = 4
+
+  local expected = {}
+  for line in (menu:bottomMessage() .. "\n"):gmatch("([^\n]*)\n") do
+    if line ~= "" then expected[#expected + 1] = line end
+  end
+  T.check(#expected > 0, "a swap in progress has a prompt to print")
+
   local drawn = recordDraw(menu)
-  local sawPrompt = false
+  local seen = 0
   for _, d in ipairs(drawn) do
-    if d.text:find("Move to where") then
-      sawPrompt = true
-      T.eq(d.x, 8, "the prompt sits at the message box's left margin")
-      T.eq(d.y, 112, "on the box's first line, not loose on the bottom row")
+    for i, line in ipairs(expected) do
+      if d.text == line then
+        seen = seen + 1
+        T.eq(d.x, 8, "the prompt sits at the message box's left margin")
+        T.eq(d.y, 112 + (i - 1) * 16,
+             "on the box's own lines, not loose on the bottom row")
+      end
     end
   end
-  T.check(sawPrompt, "a swap in progress says so")
+  T.eq(seen, #expected, "every line of the swap prompt is printed")
+end
+
+do
+  -- The same contract for every other mode: whatever bottomMessage() returns
+  -- is what lands in the box, wherever the engine takes that text from. This
+  -- is the assertion that survives an engine reword.
+  local modes = {
+    { label = "field", apply = function() end },
+    { label = "TM/HM", apply = function(m) m.tmhm = { move = "FIX_CUT" } end },
+    { label = "softboiled", apply = function(m) m.softboiledFrom = 1 end },
+  }
+  for _, mode in ipairs(modes) do
+    local game = fakeGame(FULL)
+    local menu = factory.new(game)
+    mode.apply(menu)
+    local first = menu:bottomMessage():gmatch("([^\n]*)\n?")()
+    local drawn = recordDraw(menu)
+    local found = false
+    for _, d in ipairs(drawn) do
+      if d.text == first and d.x == 8 and d.y == 112 then found = true end
+    end
+    T.check(found, "the " .. mode.label .. " prompt lands in the message box")
+  end
 end
 
 do

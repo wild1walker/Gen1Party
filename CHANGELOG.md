@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.2.0
+
+Names the screen, in both places you meet it.
+
+- **The header says `POKéMON PARTY`.** Thirteen glyphs against a box that
+  holds eighteen, so it sits well inside the margin.
+- **The START menu's row says `PARTY`.** POKéMON is the word the cart uses and
+  also most of the word on the row above it; PARTY names the screen it opens.
+  New option `START: PARTY`, default on -- off leaves the engine's own word
+  alone.
+- Done through `ui.start_menu.items`, the engine's own seam for this
+  (`src/ui/StartMenu.lua`), rather than by replacing `StartMenu` -- a screen
+  with seven submenus and a save-confirmation flow this mod has no opinion
+  about. `next()` runs first and its list is decorated, so another mod's row
+  survives and no vanilla row is rebuilt by hand.
+- The row is found by the string the engine built it from, not by position:
+  `Strings` keys on its English source, so `Strings("POKéMON")` here is the
+  same value `StartMenu`'s own call produced under every translation. A row
+  this does not find is left exactly as it was.
+- No hook bus to wrap warns rather than raises. Unlike a screen that will not
+  build, losing this does not leave an enabled mod doing nothing.
+- Suite is 211 checks, up from 198.
+
 ## 1.1.0
 
 The party menu gets the set's frame. A header box on rows 0-2, the six

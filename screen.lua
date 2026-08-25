@@ -114,13 +114,14 @@ return function(mod, C)
   -- ------- the header, and the one line under the body
   --
   -- The title is fixed the way the dex list's is: it says what screen you are
-  -- on, and the footer says what you can do about it.  What goes in the footer
+  -- on, and the footer says what you can do about it.  Thirteen glyphs against
+  -- a box that holds eighteen, so it sits well inside the margin.  What goes in the footer
   -- is bottomMessage() flattened to one line when it fits, because the words
   -- belong to the engine wherever the engine's words will go -- a reword that
   -- SHORTENS a prompt (or a translation that does) is printed verbatim without
   -- this table being touched.  Only a prompt too wide for the box falls back
   -- to the line here.
-  local TITLE = "POKéMON"
+  local TITLE = "POKéMON PARTY"
 
   local PROMPTS = {
     swap   = "Move it where?",

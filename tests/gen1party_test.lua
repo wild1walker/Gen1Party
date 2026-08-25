@@ -398,6 +398,15 @@ do
     end
   end
   T.check(sawTitle, "the header box has a title in it")
+  local titleDrawn
+  for _, d in ipairs(drawn) do
+    if d.y == G.HEADER_TEXT_Y then titleDrawn = d end
+  end
+  T.check(titleDrawn and titleDrawn.text:find("PARTY", 1, true) ~= nil,
+          "and the title names the screen (got "
+            .. tostring(titleDrawn and titleDrawn.text) .. ")")
+  T.check(titleDrawn and titleDrawn.w <= G.LINE_W,
+          "and fits the header box")
 
   -- nothing lands on the boxes' borders or outside the body
   for _, d in ipairs(drawn) do
@@ -538,6 +547,59 @@ do
           "the screen always answers with a palette or nothing")
   T.check(theirs == nil or type(theirs) == "table",
           "and so does the vanilla one it falls back to")
+end
+
+-- ------- the START menu's row
+--
+-- The one thing this mod changes outside its own screen.  Asserted through
+-- the engine's own hook bus rather than by reading main.lua: what matters is
+-- that the list the engine hands over comes back with every row it built,
+-- one of them relabelled.
+
+do
+  local Strings = require("src.core.Strings")
+  local loader = run.loader
+  T.check(type(loader) == "table" and type(loader.hooks) == "table",
+          "the suite can reach the hook bus the mod wrapped")
+
+  local function freshItems()
+    return {
+      { label = Strings("POKéDEX") },
+      { label = Strings("POKéMON"), keepOpen = false },
+      { label = Strings("ITEM") },
+      { label = "RED" },                       -- the player's own name
+    }
+  end
+  local function vanilla(_, list) return list end
+  local function fire()
+    return loader.hooks:call("ui.start_menu.items", vanilla, {}, freshItems())
+  end
+
+  local out = fire()
+  T.eq(type(out), "table", "the hook hands back a list")
+  T.eq(#out, 4, "with every row the engine built still on it")
+  T.eq(out[1].label, Strings("POKéDEX"), "the dex row is untouched")
+  T.eq(out[2].label, Strings("PARTY"), "the POKéMON row says PARTY")
+  T.eq(out[3].label, Strings("ITEM"), "the item row is untouched")
+  T.eq(out[4].label, "RED", "and so is the player's own name")
+  T.check(out[2].keepOpen == false,
+          "the row is relabelled in place, not rebuilt")
+
+  -- off leaves the engine's own word alone
+  local saved = loader.modOptions and loader.modOptions.Gen1Party
+  if loader.modOptions then
+    loader.modOptions.Gen1Party = { start_says_party = false }
+    local off = fire()
+    loader.modOptions.Gen1Party = saved
+    T.eq(off[2].label, Strings("POKéMON"),
+         "START: PARTY off restores the engine's word")
+  end
+
+  -- a list with no POKéMON row on it is handed back untouched
+  local none = loader.hooks:call("ui.start_menu.items", vanilla, {},
+                                 { { label = Strings("ITEM") } })
+  T.eq(#none, 1, "a list without the row is passed through")
+  T.eq(none[1].label, Strings("ITEM"), "with nothing renamed")
 end
 
 -- ------- a mod that cannot draw the party says so

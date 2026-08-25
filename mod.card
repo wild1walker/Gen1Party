@@ -9,7 +9,7 @@ return {
   compat = { engine = ">=0.0.0-0 <2.0.0", modApi = 2, games = { "gen1" } },
   differences = {
     changed = {
-      "the screen carries the set's frame: a header box on rows 0-2 titled POKeMON, the six members in the 96-pixel body between, a footer box on rows 15-17 -- the same shape and the same places Gen1Dex uses",
+      "the screen carries the set's frame: a header box on rows 0-2 titled POKeMON PARTY, the six members in the 96-pixel body between, a footer box on rows 15-17 -- the same shape and the same places Gen1Dex uses",
       "the bottom prompt is one line rather than two, because 3 rows of header plus 5 of two-line footer plus 12 of party is 20 against the 18 a Game Boy has; the body is exactly six rows of sixteen, so no party slot was spent on the frame",
       "bottomMessage() is still the source of the words wherever they fit: flattened to one line and printed verbatim when it is no wider than the box (Choose a POKeMON. is 17 glyphs against 18), so a reword or a translation that SHORTENS a prompt needs no change here; only the four that are too wide fall back to this mod's own line",
       "every POKeMON in the party wears its own species colours: vanilla lays ONE MEWMON zone over tiles (1,0)-(2,11) -- the whole icon column, all six at once -- and that single zone is replaced with one per member",
@@ -20,6 +20,8 @@ return {
       "all seven modes print into the standard text box, so the footer is one shape rather than three -- a change against an engine from before #1610, and a match for what the engine itself now does on a current one",
     },
     added = {
+      "the START menu's row for this screen says PARTY rather than POKeMON, through the engine's own ui.start_menu.items hook rather than by replacing StartMenu -- next() runs first and its list is decorated, and the row is found by the string the engine built it from (Strings keys on its English source) so it holds under any translation",
+      "START: PARTY in the mod manager, which leaves the engine's own word alone when off",
       "an icon mod's authored full-colour art is detected per MON rather than per species -- so a shiny tells itself apart from an ordinary one of its kind -- then marked true-colour and left exactly as its author drew it, instead of being run through a shade remap that keys off the red channel and paints an orange pixel white",
       "SPECIES COLOURS in the mod manager, which restores the vanilla palette answer exactly when off",
       "a load-time failure reports itself: a sibling file that will not read, compile, run or hand back a factory fails the load, so MODS shows the row enabled-but-broken with the reason instead of leaving an enabled mod that draws nothing of its own -- which is what an uninstalled one looks like",

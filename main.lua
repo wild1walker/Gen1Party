@@ -1,6 +1,7 @@
 -- Gen1Party: the party menu, drawn like the rest of the set.
 --
--- One registered screen replacement and nothing else.  Screens.resolve
+-- One registered screen replacement, and one relabelled row on the START
+-- menu -- see the bottom of this file for that one.  Screens.resolve
 -- prefers the screens registry over the builtin module (src/ui/Screens.lua),
 -- so a mod-free boot is untouched, and a factory that throws when the screen
 -- is PUSHED degrades to the builtin -- Screens.build already pcalls a
@@ -54,6 +55,11 @@ return function(mod)
     -- anyone who wants the 1996 screen with nothing changed but the margins.
     { key = "species_colours", type = "toggle", label = "SPECIES COLOURS",
       default = true },
+    -- The START menu's row for this screen says POKeMON, which is the word
+    -- the cart uses and is also most of the word on the row above it.  PARTY
+    -- names the screen it opens.  Off leaves the engine's own word alone.
+    { key = "start_says_party", type = "toggle", label = "START: PARTY",
+      default = true },
   })
 
   local makeChrome = loadSibling(mod, "chrome.lua")
@@ -72,6 +78,44 @@ return function(mod)
 
   mod.content.screens:register("PartyMenu", screen)
   mod.exports.geometry = screen.geometry
+
+  -- ------- the START menu's row
+  --
+  -- The one thing here that is not the party screen.  ui.start_menu.items is
+  -- the engine's own seam for exactly this (src/ui/StartMenu.lua builds its
+  -- list and hands it through), so the row is relabelled in the list the
+  -- engine gives us rather than by replacing StartMenu -- a screen with seven
+  -- submenus and a save-confirmation flow that this mod has no opinion about.
+  -- next() runs FIRST and its result is decorated, so another mod's row
+  -- survives and no vanilla row is rebuilt by hand.
+  --
+  -- The row is found by the string the engine built it from, not by position:
+  -- Strings keys on its English source (src/core/Strings.lua), so
+  -- Strings("POKéMON") here is the same value StartMenu's own
+  -- Strings("POKéMON") produced, under every translation.  A row this does
+  -- not find is left exactly as it was.
+  --
+  -- A warning rather than a raise when there is no hook bus to wrap: unlike a
+  -- screen that will not build, losing this does not leave an enabled mod
+  -- doing nothing.  The party still draws framed; one menu row keeps the
+  -- engine's word for it.
+  if type(mod.hooks) == "table" and type(mod.hooks.wrap) == "function" then
+    local Strings = require("src.core.Strings")
+    mod.hooks:wrap("ui.start_menu.items", function(next, game, items)
+      local out = next(game, items)
+      if type(out) ~= "table" then return out end
+      if not C.option("start_says_party", true) then return out end
+      local engineWord, ours = Strings("POKéMON"), Strings("PARTY")
+      for _, item in ipairs(out) do
+        if type(item) == "table" and item.label == engineWord then
+          item.label = ours
+        end
+      end
+      return out
+    end)
+  else
+    mod.log:warn("no hook bus here; the START menu keeps its own word")
+  end
 
   mod.log:info("the party wears its own colours")
 end

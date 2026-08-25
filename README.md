@@ -18,9 +18,10 @@ A mod for [Gen1Recomp](https://github.com/bryanthaboi/gen1recomp).
 
 ### The set's frame
 
-A header box on rows 0–2, the six party members in the 96-pixel body between,
-a footer box on rows 15–17 — the same shape Gen1Dex draws, in the same places.
-A party opened next to the Pokédex stops looking like a different game.
+A header box on rows 0–2 titled **`POKéMON PARTY`**, the six party members in
+the 96-pixel body between, a footer box on rows 15–17 — the same shape Gen1Dex
+draws, in the same places. A party opened next to the Pokédex stops looking
+like a different game.
 
 That body is **exactly** six rows of sixteen pixels, to the last pixel, so no
 slot was given up for it. The footer paid instead: three tile rows hold one
@@ -43,6 +44,17 @@ falls back to this mod's own line:
 | TM/HM | `Use TM on which\nPOKéMON?` | `Use TM on which?` |
 | Item | `Use item on which\nPOKéMON?` | `Use item on which?` |
 | Battle | `Bring out which\nPOKéMON?` | `Bring out which?` |
+
+### The START menu says PARTY
+
+`POKéMON` is the word the cart uses for that row, and it is also most of the
+word on the row above it. `PARTY` names the screen it opens.
+
+Done through `ui.start_menu.items` — the engine's own seam for this — rather
+than by replacing `StartMenu`, which is seven submenus and a save-confirmation
+flow this mod has no opinion about. The row is found by the string the engine
+built it from, so it works under any translation, and a list this mod does not
+recognise is handed back untouched.
 
 ### Every POKéMON in its own colours
 
@@ -103,6 +115,7 @@ kept here so the mod behaves the same on either engine.
 | Option | Default | What it does |
 | --- | --- | --- |
 | `SPECIES COLOURS` | ON | Every member in its own species colours over the grey ramp. Off restores the vanilla answer exactly — the `GREENBAR` base and the single `MEWMON` column — for anyone who wants the 1996 screen with nothing changed but the margins. |
+| `START: PARTY` | ON | The START menu's row for this screen says `PARTY` rather than `POKéMON`. Off leaves the engine's own word alone. |
 
 ---
 
@@ -145,8 +158,9 @@ proof that it loaded.
 
 ## How it works
 
-One registered screen replacement, and it replaces **two methods**: `draw` and
-`sgbPalettes`. Everything else is the engine's.
+One registered screen replacement — it replaces **two methods**, `draw` and
+`sgbPalettes` — plus one relabelled row on the START menu, through the engine's
+own hook. Everything else is the engine's.
 
 That restraint is the whole design. `PartyMenu` is not one screen but seven
 behind a single id — the field menu, the battle switch, the forced switch after

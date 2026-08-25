@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.0.2
+
+Makes a mod that cannot draw the party say so. No change to what the screen
+draws when it does.
+
+- **A load-time failure was swallowed.** Every bail-out in `main.lua` -- a
+  sibling file that would not read, would not compile, would not run, or
+  handed back something that was not a factory -- logged to a file nobody
+  opens and then returned as if all was well. What that left on screen was an
+  *enabled* mod drawing nothing of its own, which is indistinguishable from a
+  mod that was never installed. One of those paths logged nothing at all.
+  They all raise now, so the loader marks the row enabled-but-broken in MODS
+  and shows the reason (`src/mods/Loader.lua` `_fail`).
+- This is only about the boot. A screen factory that throws when the party is
+  *pushed* still degrades to the vanilla menu, because the engine already
+  pcalls a mod-owned `new` and falls back (`src/ui/Screens.lua` `build`) --
+  nothing here had to, and nothing here does.
+- `mod.path` is no longer concatenated blind into the chunk name. It is
+  decoration on an error message, and a host that hands back none would have
+  failed on the string with nothing to say.
+- Suite is 129 checks, up from 109. The six bail-outs are asserted against
+  directly -- each one has to fail the load, leave `PartyMenu` unregistered,
+  and name the file at fault.
+
 ## 1.0.1
 
 Fixes the test suite against a current Gen1Recomp, and corrects a claim in the

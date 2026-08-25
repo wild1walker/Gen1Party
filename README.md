@@ -86,6 +86,34 @@ from the game: **MODS → Import mod .zip**.
 
 ---
 
+## Installed, and nothing changed
+
+This mod replaces how the party menu is **drawn** and nothing else, so there
+are a few ways for a working install to read as no install at all.
+
+**Check the right margin first, not the icons.** It is the one change that is
+always there. With Gen1Party live, an `FNT` and the HP numbers end at 152 and
+there is a clear tile of white between them and the screen edge. Vanilla runs
+the status column 136–160 and the HP numbers 104–160, both hard against it,
+and puts the HP bar one tile further right.
+
+**The icons may already have been colourful.** If you run an icon mod whose
+art carries colour a grey ramp cannot, every POKéMON in the party looks
+different from its neighbours whether or not this mod is loaded: that art is
+re-blit unshaded over the colourised pass, so it sits out this mod's palette
+work by design. Per-species colour is only visible on the built-in icons.
+
+**`SPECIES COLOURS` off is supposed to look vanilla.** It restores the
+GREENBAR base and the single MEWMON column exactly. The margins still move.
+
+**Otherwise, look at the mod's row in MODS.** From 1.0.2 a mod that cannot
+build its screen fails the load and the row says why. Up to 1.0.1 those
+failures were logged to a file and swallowed, which left the mod enabled and
+drawing nothing of its own — so on 1.0.1 or earlier, a silent row is not
+proof that it loaded.
+
+---
+
 ## How it works
 
 One registered screen replacement, and it replaces **two methods**: `draw` and

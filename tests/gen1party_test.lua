@@ -425,4 +425,75 @@ do
           "and so does the vanilla one it falls back to")
 end
 
+-- ------- a mod that cannot draw the party says so
+--
+-- Every load-time bail-out here used to log and return, which leaves an
+-- ENABLED mod that changes nothing on screen -- the same thing a player sees
+-- when they never installed it, and the reason this section exists.  main.lua
+-- raises now, so the loader marks the row broken and shows the reason
+-- (src/mods/Loader.lua _fail).  It is called directly with a stub `mod`
+-- rather than through the loader: the contract under test is what the entry
+-- chunk DOES on a bad read, and that is one function call away.
+
+local entry = assert(loadfile(DIR .. "/main.lua"))()
+
+local function stubMod(sources)
+  local registered = {}
+  return {
+    path = DIR,
+    exports = {},
+    registered = registered,
+    options = { define = function() end, get = function() return nil end },
+    content = { screens = {
+      register = function(_, id, value) registered[id] = value end,
+    } },
+    log = { info = function() end, warn = function() end,
+            error = function() end },
+    read = function(_, name)
+      local override = sources and sources[name]
+      if override ~= nil then
+        if override == false then return nil, "nofile" end
+        return override
+      end
+      local handle = io.open(DIR .. "/" .. name, "rb")
+      if not handle then return nil, "nofile" end
+      local body = handle:read("*a")
+      handle:close()
+      return body
+    end,
+  }
+end
+
+do
+  local mod = stubMod()
+  local ok, err = pcall(entry, mod)
+  T.check(ok, "the entry chunk runs clean on a whole install (" ..
+              tostring(err) .. ")")
+  T.check(mod.registered.PartyMenu ~= nil, "and registers the party screen")
+end
+
+for _, case in ipairs({
+  { name = "chrome.lua", sources = { ["chrome.lua"] = false },
+    what = "a missing chrome.lua" },
+  { name = "screen.lua", sources = { ["screen.lua"] = false },
+    what = "a missing screen.lua" },
+  { name = "screen.lua", sources = { ["screen.lua"] = "return function( end" },
+    what = "a screen.lua that will not compile" },
+  { name = "screen.lua", sources = { ["screen.lua"] = "error('boom')" },
+    what = "a screen.lua that throws on load" },
+  { name = "screen.lua", sources = { ["screen.lua"] = "return 42" },
+    what = "a screen.lua that returns no factory" },
+  { name = "screen.lua", sources = { ["screen.lua"] = "return function() end" },
+    what = "a factory that builds no screen" },
+}) do
+  local mod = stubMod(case.sources)
+  local ok, err = pcall(entry, mod)
+  T.check(not ok, case.what .. " fails the load rather than loading quiet")
+  T.check(mod.registered.PartyMenu == nil,
+          "and leaves the party screen unregistered")
+  T.check(ok or tostring(err):find(case.name, 1, true) ~= nil,
+          "and names " .. case.name .. " in the reason (" .. tostring(err) ..
+          ")")
+end
+
 T.finish("Gen1Party")

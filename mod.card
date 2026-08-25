@@ -18,11 +18,13 @@ return {
     added = {
       "an icon mod's authored full-colour art is detected per MON rather than per species -- so a shiny tells itself apart from an ordinary one of its kind -- then marked true-colour and left exactly as its author drew it, instead of being run through a shade remap that keys off the red channel and paints an orange pixel white",
       "SPECIES COLOURS in the mod manager, which restores the vanilla palette answer exactly when off",
+      "a load-time failure reports itself: a sibling file that will not read, compile, run or hand back a factory fails the load, so MODS shows the row enabled-but-broken with the reason instead of leaving an enabled mod that draws nothing of its own -- which is what an uninstalled one looks like",
     },
     known = {
       "there is no header box on this screen and there cannot be: six members at 16 pixels fill rows 0-11 exactly and the message box owns rows 12-17, so a boxed top would cost either a party slot or the second line the TM/HM prompt needs -- the message box is the footer instead, and was already the right chrome",
       "there is no ruled icon column either, unlike the Pokedex list: the rule needs the names to start at 32 and they start at 24, and the eight pixels can only come out of the name column -- which holds a NICKNAME, and cutting CHARMANDER to CHARMANDE to make room for a hairline is not a trade worth making",
       "the HP numbers keep their %3d/%3d padding rather than becoming variable width, because the bar's right cap sits under the first glyph and the pad's SPACE over that cap is what keeps a two-digit HP from colliding with it; a three-digit HP still lands a digit there, exactly as it does in vanilla",
+      "a screen factory that throws when the party is PUSHED still degrades to the vanilla menu, because Screens.build pcalls a mod-owned new and falls back; only the BOOT is loud, where nothing is at risk and the only question is whether the player is told",
       "only draw and sgbPalettes are replaced -- every mode, key and callback is still the engine's -- so anything wrong with what the party menu DOES is not this mod",
       "the suite asserts WHERE each prompt lands rather than what it says, because the words belong to the engine and it rewords them: hardcoding the swap prompt cost one red CI run when #1610 changed it from Move to where? to Move POKeMON where?",
     },

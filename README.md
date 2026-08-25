@@ -239,6 +239,15 @@ version is the first rule that applies: a manual **Run workflow** input,
 is ahead of every tag, otherwise a patch bump. The job refuses to clobber an
 existing tag.
 
+## Credits
+
+By **Wild**.
+
+Built on the party-screen and palette seams of [Pokemon Gen1Recomp](https://github.com/bryanthaboi/gen1recomp), and on the [pret](https://github.com/pret)
+disassembly of Pokemon Red, Blue and Yellow: `engine/menus/party_menu.asm` is
+the screen this mod re-dresses, and its `.teachMoveMenu` path is why some rows
+have no HP bar to colour.
+
 ## Licence
 
 MIT — see [LICENSE](LICENSE).

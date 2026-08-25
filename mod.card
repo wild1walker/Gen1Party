@@ -6,6 +6,15 @@ return {
     .. "the right edge of the screen.",
   author = "wild1walker",
   tags = { "ui", "party", "quality-of-life", "icons" },
+  credits = {
+    { who = "Gen1Recomp", for_ = "the party-screen and palette seams this "
+      .. "mod is built on" },
+    { who = "pret/pokered", for_ = "engine/menus/party_menu.asm, the screen "
+      .. "this re-dresses, and the .teachMoveMenu path that is why some rows "
+      .. "have no HP bar to colour" },
+    { who = "Nintendo / Creatures / GAME FREAK", for_ = "Pokemon Red, Blue "
+      .. "and Yellow.  Unofficial fan mod, no affiliation, no endorsement" },
+  },
   compat = { engine = ">=0.0.0-0 <2.0.0", modApi = 2, games = { "gen1" } },
   differences = {
     changed = {

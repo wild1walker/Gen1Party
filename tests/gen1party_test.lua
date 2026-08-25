@@ -27,6 +27,8 @@ T.eq(#run.errors, 0, "loads clean (" .. tostring(run.errors[1]) .. ")")
 local factory = Data.screens and Data.screens.PartyMenu
 T.check(factory ~= nil, "the PartyMenu screen id is taken over")
 T.eq(type(factory.new), "function", "and it is a screen factory")
+local geometry = factory.geometry or {}
+T.eq(type(geometry.BODY_TOP), "number", "and it publishes its geometry")
 
 -- ------- a stub game and a stub party
 
@@ -109,7 +111,11 @@ do
   end
   T.eq(#iconZones, 6, "six icon zones, on the icon column")
   for i, z in ipairs(iconZones) do
-    T.eq(z.y, (i - 1) * 16, "icon zone " .. i .. " sits on its own slot")
+    -- on the slot's own rows IN THE BODY: the zones moved down with the rows
+    -- when the header box went in, and a zone left at the old offset would
+    -- paint the member above (or the header) in this one's colours
+    T.eq(z.y, geometry.BODY_TOP + (i - 1) * 16,
+         "icon zone " .. i .. " sits on its own slot")
     T.eq(z.h, 16, "and is two tile rows tall")
     T.eq(z.x % 8, 0, "on a tile boundary horizontally")
     T.eq(z.y % 8, 0, "and vertically")
@@ -143,18 +149,31 @@ end
 -- HP numbers 104..160.  Record what is actually drawn and measure it.
 
 local function recordDraw(screen)
-  local drawn = {}
-  local realDraw = Font.draw
+  local drawn = { boxes = {} }
+  local realDraw, realBox = Font.draw, Font.drawBox
   Font.draw = function(text, x, y)
     local ok, w = pcall(Font.width, text)
     drawn[#drawn + 1] = { text = tostring(text), x = x, y = y,
                           w = ok and w or 0 }
     return realDraw(text, x, y)
   end
+  Font.drawBox = function(tx, ty, tw, th)
+    drawn.boxes[#drawn.boxes + 1] = { tx = tx, ty = ty, tw = tw, th = th }
+    return realBox(tx, ty, tw, th)
+  end
   local ok, err = pcall(screen.draw, screen)
-  Font.draw = realDraw
+  Font.draw, Font.drawBox = realDraw, realBox
   T.check(ok, "the screen draws (" .. tostring(err) .. ")")
   return drawn
+end
+
+local function hasBox(drawn, tx, ty, tw, th)
+  for _, b in ipairs(drawn.boxes) do
+    if b.tx == tx and b.ty == ty and b.tw == tw and b.th == th then
+      return true
+    end
+  end
+  return false
 end
 
 do
@@ -322,62 +341,158 @@ do
 end
 
 do
-  -- A swap in progress prints its prompt into the message box, like every
-  -- other mode's.
-  --
-  -- The prompt is taken from bottomMessage() rather than written out here.
-  -- Hardcoding it cost a red CI run once already: the engine reworded the swap
-  -- prompt from "Move to where?" to "Move POKéMON\nwhere?" and routed it
-  -- through data.text (#1610), and a suite that spells the words out is
-  -- asserting the ENGINE's copy rather than this mod's layout. What this mod
-  -- is responsible for is WHERE the line lands, not what it says.
+  -- The bar zones moved down with the rows too.  Each one has to sit on its
+  -- OWN slot's HP row: a zone left at the vanilla offset would colour the
+  -- member above it, and slot 1's would land on the header box.  The fixture
+  -- carries no palette pack, so stand in for the lookup and assert placement.
   local game = fakeGame(FULL)
   local menu = factory.new(game)
-  menu.swapFrom = 2
-  menu.index = 4
-
-  local expected = {}
-  for line in (menu:bottomMessage() .. "\n"):gmatch("([^\n]*)\n") do
-    if line ~= "" then expected[#expected + 1] = line end
+  local realPal = PaletteFX.pal
+  PaletteFX.pal = function(_, name)
+    if type(name) == "string" and name:find("BAR") then
+      return { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } }
+    end
+    return nil
   end
-  T.check(#expected > 0, "a swap in progress has a prompt to print")
+  local zones = menu:sgbPalettes(game)
+  PaletteFX.pal = realPal
 
+  local bars = {}
+  for _, z in ipairs(zones or {}) do
+    if z and z.x == 48 then bars[#bars + 1] = z end
+  end
+  T.eq(#bars, 6, "one bar zone per member")
+  for i, z in ipairs(bars) do
+    T.eq(z.y, geometry.BODY_TOP + (i - 1) * geometry.ROW_H + 8,
+         "bar zone " .. i .. " sits on its own slot's HP row")
+    T.eq(z.h, 8, "and is one tile row tall")
+  end
+end
+
+-- ------- the frame
+
+do
+  -- The set's shape: a header box on 0-2, six party rows in the 96-pixel body
+  -- between, a footer box on 15-17.  Asserted as boxes and pixel rows rather
+  -- than described, because "does this fit" is a question about the screen.
+  local game = fakeGame(FULL)
+  local menu = factory.new(game)
   local drawn = recordDraw(menu)
-  local seen = 0
+
+  T.check(hasBox(drawn, 0, 0, 20, 3), "a header box on rows 0-2")
+  T.check(hasBox(drawn, 0, 15, 20, 3), "a footer box on rows 15-17")
+
+  local G = geometry
+  T.eq(G.BODY_TOP, 24, "the body starts under the header box")
+  T.eq(G.BODY_TOP + 6 * G.ROW_H - 1, G.BODY_BOTTOM,
+       "and six rows of sixteen fill it exactly, to the last pixel")
+  T.eq(G.FOOTER_TY * 8, G.BODY_BOTTOM + 1,
+       "with the footer box starting on the row after")
+
+  -- the title, where the dex list puts its own
+  local sawTitle = false
   for _, d in ipairs(drawn) do
-    for i, line in ipairs(expected) do
-      if d.text == line then
-        seen = seen + 1
-        T.eq(d.x, 8, "the prompt sits at the message box's left margin")
-        T.eq(d.y, 112 + (i - 1) * 16,
-             "on the box's own lines, not loose on the bottom row")
-      end
+    if d.y == G.HEADER_TEXT_Y then
+      sawTitle = true
+      T.eq(d.x, G.LEFT, "the title sits at the header box's left margin")
     end
   end
-  T.eq(seen, #expected, "every line of the swap prompt is printed")
+  T.check(sawTitle, "the header box has a title in it")
+
+  -- nothing lands on the boxes' borders or outside the body
+  for _, d in ipairs(drawn) do
+    local onChrome = d.y == G.HEADER_TEXT_Y or d.y == G.FOOTER_TEXT_Y
+    T.check(onChrome or (d.y >= G.BODY_TOP and d.y + 8 <= G.BODY_BOTTOM + 1),
+            ("%q is inside the body or on a box line (y=%d)")
+              :format(d.text, d.y))
+  end
 end
 
 do
-  -- The same contract for every other mode: whatever bottomMessage() returns
-  -- is what lands in the box, wherever the engine takes that text from. This
-  -- is the assertion that survives an engine reword.
+  -- Every member is in the body, and the six rows are where they should be.
+  local game = fakeGame(FULL)
+  local menu = factory.new(game)
+  local drawn = recordDraw(menu)
+  for i = 1, 6 do
+    local want = geometry.BODY_TOP + (i - 1) * geometry.ROW_H
+    local found = false
+    for _, d in ipairs(drawn) do
+      if d.x == geometry.NAME_X and d.y == want then found = true end
+    end
+    T.check(found, "slot " .. i .. "'s name is on its own row in the body")
+  end
+end
+
+-- ------- one line under the body, and whose words it is
+
+do
+  -- The footer holds ONE line.  bottomMessage() still owns the words wherever
+  -- the engine's words fit the box: hardcoding a prompt cost a red CI run once
+  -- already (#1610 reworded the swap prompt), so what is asserted is that a
+  -- fitting engine prompt is printed VERBATIM and that nothing printed there
+  -- is ever wider than the box.
   local modes = {
     { label = "field", apply = function() end },
+    { label = "swap", apply = function(m) m.swapFrom = 2 m.index = 4 end },
     { label = "TM/HM", apply = function(m) m.tmhm = { move = "FIX_CUT" } end },
     { label = "softboiled", apply = function(m) m.softboiledFrom = 1 end },
+    { label = "battle", apply = function(m) m.battle = true end },
   }
   for _, mode in ipairs(modes) do
     local game = fakeGame(FULL)
     local menu = factory.new(game)
     mode.apply(menu)
-    local first = menu:bottomMessage():gmatch("([^\n]*)\n?")()
+
+    local engineText = menu:bottomMessage()
+    local flat = (tostring(engineText):gsub("%s*\n%s*", " "))
     local drawn = recordDraw(menu)
-    local found = false
+
+    local footer
     for _, d in ipairs(drawn) do
-      if d.text == first and d.x == 8 and d.y == 112 then found = true end
+      if d.y == geometry.FOOTER_TEXT_Y then
+        T.check(footer == nil,
+                "the " .. mode.label .. " footer is one line, not two")
+        footer = d
+      end
     end
-    T.check(found, "the " .. mode.label .. " prompt lands in the message box")
+    T.check(footer ~= nil, "the " .. mode.label .. " mode prints a prompt")
+    if footer then
+      T.eq(footer.x, geometry.LEFT,
+           "the " .. mode.label .. " prompt sits at the box's left margin")
+      T.check(footer.w <= geometry.LINE_W,
+              ("the %s prompt fits the box (%q is %d wide, box is %d)")
+                :format(mode.label, footer.text, footer.w, geometry.LINE_W))
+      -- the engine's own words survive whenever they can
+      local ok, engineWidth = pcall(Font.width, flat)
+      if ok and engineWidth <= geometry.LINE_W then
+        T.eq(footer.text, flat,
+             "the " .. mode.label .. " prompt is the engine's own, verbatim")
+      else
+        T.check(footer.text ~= "",
+                "the " .. mode.label .. " prompt falls back to a line that fits")
+      end
+    end
   end
+end
+
+do
+  -- A prompt the engine SHORTENS is printed as-is without this mod being
+  -- touched: the fallback is keyed on width, not on the mode.
+  local game = fakeGame(FULL)
+  game.data.text = game.data.text or {}
+  local restore = game.data.text._PartyMenuUseTMText
+  game.data.text._PartyMenuUseTMText = "Teach who?"
+  local menu = factory.new(game)
+  menu.tmhm = { move = "FIX_CUT" }
+  local drawn = recordDraw(menu)
+  local footer
+  for _, d in ipairs(drawn) do
+    if d.y == geometry.FOOTER_TEXT_Y then footer = d end
+  end
+  game.data.text._PartyMenuUseTMText = restore
+  T.check(footer and footer.text == "Teach who?",
+          "a reworded prompt that fits is printed verbatim (got "
+            .. tostring(footer and footer.text) .. ")")
 end
 
 do

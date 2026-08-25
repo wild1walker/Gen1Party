@@ -1,13 +1,17 @@
 -- Sharing metadata: read by tooling and the mod manager's detail pane.
 return {
-  summary = "The party menu drawn like the rest of the set: every POKeMON in "
-    .. "its own species colours instead of all six sharing one, and nothing "
-    .. "left running off the right edge of the screen.",
+  summary = "The party menu drawn like the rest of the set: boxed top and "
+    .. "bottom the way the Pokedex list is, every POKeMON in its own species "
+    .. "colours instead of all six sharing one, and nothing left running off "
+    .. "the right edge of the screen.",
   author = "wild1walker",
   tags = { "ui", "party", "quality-of-life", "icons" },
   compat = { engine = ">=0.0.0-0 <2.0.0", modApi = 2, games = { "gen1" } },
   differences = {
     changed = {
+      "the screen carries the set's frame: a header box on rows 0-2 titled POKeMON, the six members in the 96-pixel body between, a footer box on rows 15-17 -- the same shape and the same places Gen1Dex uses",
+      "the bottom prompt is one line rather than two, because 3 rows of header plus 5 of two-line footer plus 12 of party is 20 against the 18 a Game Boy has; the body is exactly six rows of sixteen, so no party slot was spent on the frame",
+      "bottomMessage() is still the source of the words wherever they fit: flattened to one line and printed verbatim when it is no wider than the box (Choose a POKeMON. is 17 glyphs against 18), so a reword or a translation that SHORTENS a prompt needs no change here; only the four that are too wide fall back to this mod's own line",
       "every POKeMON in the party wears its own species colours: vanilla lays ONE MEWMON zone over tiles (1,0)-(2,11) -- the whole icon column, all six at once -- and that single zone is replaced with one per member",
       "the screen's base palette is the plain grey ramp rather than GREENBAR, so the names, numbers and boxes read as black line art rather than sitting under a bar palette standing in for a screen palette",
       "the status column right-aligns on 152 instead of starting at a fixed 136 and running to the screen edge -- free, because the level always ends at 128 whether it is two digits or three",
@@ -21,7 +25,8 @@ return {
       "a load-time failure reports itself: a sibling file that will not read, compile, run or hand back a factory fails the load, so MODS shows the row enabled-but-broken with the reason instead of leaving an enabled mod that draws nothing of its own -- which is what an uninstalled one looks like",
     },
     known = {
-      "there is no header box on this screen and there cannot be: six members at 16 pixels fill rows 0-11 exactly and the message box owns rows 12-17, so a boxed top would cost either a party slot or the second line the TM/HM prompt needs -- the message box is the footer instead, and was already the right chrome",
+      "the frame was paid for with the second prompt line, not with a party slot: the alternative was a 5-row footer keeping both lines, which leaves 80 pixels of body -- five visible slots and a scroll, on a screen whose whole job is showing the party at once",
+      "the level and the status touch: right-aligning FNT on 152 puts it at 128, which is where the level ends, and that 8-pixel gap is exactly what the right margin was bought with -- true since 1.0.0, and only easier to notice now the rest of the screen is framed",
       "there is no ruled icon column either, unlike the Pokedex list: the rule needs the names to start at 32 and they start at 24, and the eight pixels can only come out of the name column -- which holds a NICKNAME, and cutting CHARMANDER to CHARMANDE to make room for a hairline is not a trade worth making",
       "the HP numbers keep their %3d/%3d padding rather than becoming variable width, because the bar's right cap sits under the first glyph and the pad's SPACE over that cap is what keeps a two-digit HP from colliding with it; a three-digit HP still lands a digit there, exactly as it does in vanilla",
       "a screen factory that throws when the party is PUSHED still degrades to the vanilla menu, because Screens.build pcalls a mod-owned new and falls back; only the BOOT is loud, where nothing is at risk and the only question is whether the player is told",

@@ -16,6 +16,34 @@ A mod for [Gen1Recomp](https://github.com/bryanthaboi/gen1recomp).
 
 ## What it does
 
+### The set's frame
+
+A header box on rows 0–2, the six party members in the 96-pixel body between,
+a footer box on rows 15–17 — the same shape Gen1Dex draws, in the same places.
+A party opened next to the Pokédex stops looking like a different game.
+
+That body is **exactly** six rows of sixteen pixels, to the last pixel, so no
+slot was given up for it. The footer paid instead: three tile rows hold one
+line of text, and four of the five prompts the engine hands back are two.
+Three rows of header plus five of footer plus twelve of party is twenty
+against the eighteen a Game Boy has.
+
+So every prompt prints on one line — and the engine keeps the words wherever
+the engine's words fit. `bottomMessage()` is flattened onto one line and
+printed verbatim when it is no wider than the box; `Choose a POKéMON.` is
+seventeen glyphs against a box that holds eighteen, so the field menu says
+exactly what the engine says, and a reword or a translation that *shortens* a
+prompt is picked up with nothing in this mod touched. Only a prompt too wide
+falls back to this mod's own line:
+
+| Mode | Engine | Here |
+| --- | --- | --- |
+| Field | `Choose a POKéMON.` | unchanged |
+| Swap | `Move POKéMON\nwhere?` | `Move it where?` |
+| TM/HM | `Use TM on which\nPOKéMON?` | `Use TM on which?` |
+| Item | `Use item on which\nPOKéMON?` | `Use item on which?` |
+| Battle | `Bring out which\nPOKéMON?` | `Bring out which?` |
+
 ### Every POKéMON in its own colours
 
 Vanilla lays **one** `MEWMON` palette zone over tiles (1,0)–(2,11) — the whole
@@ -91,11 +119,12 @@ from the game: **MODS → Import mod .zip**.
 This mod replaces how the party menu is **drawn** and nothing else, so there
 are a few ways for a working install to read as no install at all.
 
-**Check the right margin first, not the icons.** It is the one change that is
-always there. With Gen1Party live, an `FNT` and the HP numbers end at 152 and
-there is a clear tile of white between them and the screen edge. Vanilla runs
-the status column 136–160 and the HP numbers 104–160, both hard against it,
-and puts the HP bar one tile further right.
+**Check for the boxes, not the icons.** From 1.1.0 the answer is obvious at a
+glance: a header box across the top saying `POKéMON` and a boxed footer across
+the bottom, with the party in the band between. If the list starts at the very
+top of the screen, this mod is not drawing. (On 1.0.x the only tell was the
+right margin — an `FNT` ending at 152 with a clear tile of white after it,
+rather than running to 160.)
 
 **The icons may already have been colourful.** If you run an icon mod whose
 art carries colour a grey ramp cannot, every POKéMON in the party looks
@@ -130,13 +159,15 @@ so the vanilla constructor builds the screen and only the drawing is swapped.
 The suite checks that directly: it diffs every field the vanilla constructor
 sets against the one this mod hands back, and fails if any of them went missing.
 
-### There is no header box, and there cannot be
+### What the header box cost
 
-Six members at 16 pixels each fill rows 0–11 exactly, and the message box owns
-rows 12–17. There is no spare tile row on this screen. A header box like the
-Pokédex list carries would cost either a party slot or the second line the
-TM/HM prompt needs — so the message box *is* the footer, and it was already the
-right chrome.
+Nothing on this screen is free. The set's frame spends 3 tile rows at the top
+and 3 at the bottom, and 3 + 3 + 12 is exactly 18 — so all six members fit,
+and the bill lands on the footer, which drops from two lines to one.
+
+The alternative was a 5-row footer keeping both lines, which leaves 80 pixels
+of body: five visible slots and a scroll, on a screen whose whole job is
+showing you the party at once. The words were the cheaper thing to spend.
 
 ### There is no ruled icon column either
 

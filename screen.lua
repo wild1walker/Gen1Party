@@ -15,14 +15,25 @@
 -- mod has an opinion about how the party LOOKS and none at all about what it
 -- does.
 --
--- ------- the row is full, and that shapes everything
+-- ------- the frame, and what it cost
 --
--- Six members at 16 pixels each fill rows 0-11 exactly, and the bottom
--- message box owns rows 12-17.  There is no spare tile row on this screen, so
--- there is no header box on it -- the boxed top the dex list carries cannot
--- be paid for here without dropping a party slot or shrinking the message box
--- below the two lines its TM/HM prompt needs.  The message box IS the footer,
--- and it is already the same Font.drawBox chrome the rest of the set uses.
+-- The set's shape is a header box on rows 0-2, a body on rows 3-14 and a
+-- footer box on rows 15-17.  That body is 96 pixels, which is exactly six
+-- party rows of sixteen -- the slots were never the problem.  The footer was:
+-- three tile rows hold ONE line of text, and four of the five prompts the
+-- engine hands back are two lines (party_menu.asm via data.text).  Three rows
+-- of header plus five of footer plus twelve of party is twenty against the
+-- eighteen there are, so two rows have to come from somewhere.
+--
+-- They come from the words.  Every prompt is printed on one line: the
+-- engine's own, whenever the engine's own fits -- "Choose a POKéMON." is
+-- seventeen glyphs against a box that holds eighteen, so the field menu still
+-- says exactly what the engine says -- and this mod's one-line wording for the
+-- four that do not.  That is the trade, and it is the only one that keeps all
+-- six members on screen with a sentence under them that finishes.
+--
+-- The alternative was five visible slots and a scroll, on a screen whose whole
+-- job is showing you the party at once.
 --
 -- Across the row it is just as tight.  The vanilla name column runs 24..104,
 -- the level 104..128 and the status 136..160 -- packed to the last pixel of
@@ -74,7 +85,7 @@ return function(mod, C)
   --
   -- Everything the icons touch is a whole tile, because an SGB palette zone
   -- is ADDRESSED in tiles (PaletteFX.zone) and a zone per icon is the point.
-  -- Slot i's rows are tile rows (i-1)*2 and (i-1)*2+1.
+  -- Slot i's rows are tile rows BODY_TY+(i-1)*2 and the one under it.
 
   local ICON_X, ICON = 8, 16
   local ICON_TX1, ICON_TX2 = 1, 2        -- x 8..23
@@ -82,6 +93,12 @@ return function(mod, C)
   local LV_TILE, LV_X = 104, 112         -- the <LV> tile, then the digits
   local LV_WIDE_X = 104                  -- L100: the third digit takes the tile
   local ROW_H = 16
+
+  -- The body starts under the header box rather than at the top of the screen,
+  -- so every row -- and every palette zone addressed in tiles -- moves down by
+  -- three tile rows.  BODY_TY is that offset in the unit zones are counted in.
+  local BODY_TY = 3
+  local function entryY(i) return C.BODY_TOP + (i - 1) * ROW_H end
 
   -- The bar, one tile left of vanilla so the numbers can keep a margin.
   local BAR_TX = 4                       -- x 32; vanilla is tile 5
@@ -94,8 +111,23 @@ return function(mod, C)
   -- which is what vanilla does -- on 152 now rather than trailing off 160.
   local ABLE_END = 152
 
-  local MESSAGE_TY, MESSAGE_TH = 12, 6
-  local MESSAGE_Y, MESSAGE_STEP = 112, 16
+  -- ------- the header, and the one line under the body
+  --
+  -- The title is fixed the way the dex list's is: it says what screen you are
+  -- on, and the footer says what you can do about it.  What goes in the footer
+  -- is bottomMessage() flattened to one line when it fits, because the words
+  -- belong to the engine wherever the engine's words will go -- a reword that
+  -- SHORTENS a prompt (or a translation that does) is printed verbatim without
+  -- this table being touched.  Only a prompt too wide for the box falls back
+  -- to the line here.
+  local TITLE = "POKéMON"
+
+  local PROMPTS = {
+    swap   = "Move it where?",
+    tmhm   = "Use TM on which?",
+    item   = "Use item on which?",
+    battle = "Bring out which?",
+  }
 
   -- ------- full-colour icons
   --
@@ -208,7 +240,7 @@ return function(mod, C)
           -- nobody ever sees
           if not fullColour(game, mon) then
             local colors = PaletteFX.monPal(game.data, mon.species)
-            local ty = (i - 1) * 2
+            local ty = BODY_TY + (i - 1) * 2
             local zone = colors
               and PaletteFX.zone(colors, ICON_TX1, ty, ICON_TX2, ty + 1)
             if zone then out[#out + 1] = zone end
@@ -226,8 +258,9 @@ return function(mod, C)
             local bar = PaletteFX.pal(game.data,
                                       PaletteFX.barPalName(hp, mon.stats.hp))
             if bar then
-              out[#out + 1] = PaletteFX.zone(bar, BAR_ZONE_TX1, i * 2 - 1,
-                                             BAR_ZONE_TX2, i * 2 - 1)
+              local ty = BODY_TY + (i - 1) * 2 + 1
+              out[#out + 1] = PaletteFX.zone(bar, BAR_ZONE_TX1, ty,
+                                             BAR_ZONE_TX2, ty)
             end
           end
         end
@@ -238,6 +271,49 @@ return function(mod, C)
       if ok and zones then return zones end
       return vanillaSgb(self, game)
     end
+  end
+
+  -- ------- one line under the body
+  --
+  -- bottomMessage() owns the words and this owns the width.  Flatten whatever
+  -- it returns onto one line and print it when it fits; the field menu's
+  -- "Choose a POKéMON." does, so the commonest screen in the game still says
+  -- exactly what the engine says.  When it does not fit, print this mod's
+  -- wording for the mode instead of a sentence cut in half -- the two-line
+  -- box those prompts were written for is what the header box was paid for
+  -- with, and half of "Use TM on which POKéMON?" is not an improvement on
+  -- either.
+  local function flatten(text)
+    return (tostring(text or ""):gsub("%s*\n%s*", " "):gsub("%s+$", ""))
+  end
+
+  local function modeOf(self)
+    if self.swapFrom then return "swap" end
+    if self.tmhm then return "tmhm" end
+    if self.softboiledFrom or self.itemUse then return "item" end
+    if self.battle then return "battle" end
+    return "normal"
+  end
+
+  local function fits(text)
+    local ok, w = pcall(Font.width, text)
+    return ok and w <= C.LINE_W
+  end
+
+  local function promptFor(self)
+    local ok, message = pcall(self.bottomMessage, self)
+    local line = ok and flatten(message) or ""
+    if line ~= "" and fits(line) then return line end
+    local ours = PROMPTS[modeOf(self)]
+    -- no fallback for the field menu on purpose: if the engine's own normal
+    -- prompt ever stops fitting, its FIRST line is still a whole sentence
+    -- ("Choose a POKéMON.") and closer to the engine's copy than anything
+    -- written here.
+    if ours then
+      ours = Strings(ours)
+      if fits(ours) then return ours end
+    end
+    return C.truncate(line, 18)
   end
 
   -- ------- drawing
@@ -256,6 +332,10 @@ return function(mod, C)
   local function draw(self)
     C.clear()
 
+    -- the boxed top and bottom the rest of the set has, and the body between
+    C.headerBox()
+    Font.draw(Strings(TITLE), C.LEFT, C.HEADER_TEXT_Y)
+
     local game = self.game
     local party = self.party or game.save.party
     if #party == 0 then
@@ -273,7 +353,7 @@ return function(mod, C)
 
     for i, mon in ipairs(party) do
       local def = game.data.pokemon[mon.species]
-      local y = PartyMenu.entryY(i)
+      local y = entryY(i)
       local selected = i == self.index
 
       drawIcon(self, mon, y, selected)
@@ -348,21 +428,13 @@ return function(mod, C)
       end
     end
 
-    -- ------- the bottom message
+    -- ------- the footer
     --
-    -- Every mode prints into the standard box (rows 12-17, lines on 14/16),
-    -- which is the footer this screen already had and the same chrome the rest
-    -- of the set boxes with.  bottomMessage() owns which words -- the modes
-    -- that used to print a bare bottom-row line print into the box like the
-    -- others, so the footer is one shape rather than three.
-    C.black()
-    Font.drawBox(0, MESSAGE_TY, 20, MESSAGE_TH)
-    C.black()
-    local ly = MESSAGE_Y
-    for line in (self:bottomMessage() .. "\n"):gmatch("([^\n]*)\n") do
-      Font.draw(line, C.LEFT, ly)
-      ly = ly + MESSAGE_STEP
-    end
+    -- Three rows on 15-17 with its one line on 128, the same box in the same
+    -- place the dex list puts its SEEN / OWN counts.  What goes in it is
+    -- promptFor: the engine's own words whenever they fit the width.
+    C.footerBox()
+    Font.draw(promptFor(self), C.LEFT, C.FOOTER_TEXT_Y)
 
     if self.submenu then
       local n = #self.subItems
@@ -396,9 +468,16 @@ return function(mod, C)
   Party.geometry = {
     ICON_X = ICON_X, NAME_X = NAME_X, ROW_H = ROW_H,
     BAR_TX = BAR_TX, BAR_SEGMENTS = BAR_SEGMENTS,
-    RIGHT = C.RIGHT, ABLE_END = ABLE_END,
+    RIGHT = C.RIGHT, LEFT = C.LEFT, ABLE_END = ABLE_END,
+    BODY_TOP = C.BODY_TOP, BODY_BOTTOM = C.BODY_BOTTOM, BODY_TY = BODY_TY,
+    HEADER_TH = C.HEADER_TH, HEADER_TEXT_Y = C.HEADER_TEXT_Y,
+    FOOTER_TY = C.FOOTER_TY, FOOTER_TEXT_Y = C.FOOTER_TEXT_Y,
+    LINE_W = C.LINE_W, TITLE = TITLE,
   }
+  Party.entryY = entryY
+  Party.promptFor = promptFor
   Party.drawInto = draw
 
-  return { new = Party.new, geometry = Party.geometry }
+  return { new = Party.new, geometry = Party.geometry,
+           entryY = Party.entryY, promptFor = Party.promptFor }
 end

@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.1.0
+
+The party menu gets the set's frame. A header box on rows 0-2, the six
+members in the 96-pixel body between, a footer box on rows 15-17 -- the same
+shape Gen1Dex draws, in the same places.
+
+- **The body is exactly six party rows.** 96 pixels, six rows of sixteen, to
+  the last pixel. The slots were never what stood in the way.
+- **The footer was.** Three tile rows hold one line of text, and four of the
+  five prompts the engine hands back are two lines. Three of header plus five
+  of footer plus twelve of party is twenty rows against the eighteen a Game
+  Boy has, so two had to come from somewhere, and they came from the words:
+  every prompt now prints on one line.
+- **The engine still owns the words wherever they fit.** `bottomMessage()` is
+  flattened onto one line and printed verbatim when it is no wider than the
+  box -- `"Choose a POKéMON."` is seventeen glyphs against a box that holds
+  eighteen, so the field menu says exactly what the engine says, and a reword
+  or a translation that SHORTENS a prompt is picked up with nothing here
+  touched. Only a prompt too wide falls back to this mod's own line, and only
+  for that mode.
+- The four that fall back: `Move it where?`, `Use TM on which?`,
+  `Use item on which?`, `Bring out which?`.
+- Every palette zone moved down with its row. An icon zone left at the old
+  offset would have painted the member above it, and slot 1's would have
+  landed on the header box.
+- Suite is 198 checks, up from 129. The frame is asserted as boxes and pixel
+  rows -- six rows of sixteen filling the body to `BODY_BOTTOM` exactly,
+  nothing drawn on a box border, one footer line per mode and never wider
+  than the box.
+
+### Still not here
+
+- **The ruled icon column** the dex list draws. It needs the names to start at
+  32 and they start at 24, and the eight pixels can only come out of a column
+  holding a nickname.
+- **A gap between the level and the status.** Right-aligning `FNT` on 152
+  puts it at 128, where the level ends -- that 8-pixel gap is what the right
+  margin was bought with. Unchanged since 1.0.0; the frame only makes it
+  easier to notice.
+
 ## 1.0.2
 
 Makes a mod that cannot draw the party say so. No change to what the screen

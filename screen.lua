@@ -55,12 +55,14 @@
 --     under the first glyph, and a SPACE over the cap is what makes the two
 --     not collide.  Variable width would put a digit there.
 --
--- What is NOT here: the ruled icon column the dex list draws between its
--- icons and its names.  The rule needs the names to start at 32 and they
--- start at 24, and the eight pixels can only come out of the name column --
--- which holds a NICKNAME, and a nickname is the player's own text.  Cutting
--- CHARMANDER to CHARMANDE to make room for a hairline is not a trade worth
--- making.
+-- The dex list's ruled icon column is here too, and it is the same eight
+-- pixels again: the rule needs the names off the icon cell, ten glyphs of
+-- name need every pixel from 24 to the level column, so the tenth glyph is
+-- what buys it.  That was left undone for two versions on the grounds that a
+-- nickname is the player's own text -- until it was pointed out that art
+-- filling its 16-pixel cell (three of six is typical for an icon pack) sits
+-- flush against the first letter with no air at all, which costs more than
+-- the tenth glyph does.  RULED ICONS, and off restores the wide column.
 --
 -- ------- the icons
 --
@@ -89,7 +91,23 @@ return function(mod, C)
 
   local ICON_X, ICON = 8, 16
   local ICON_TX1, ICON_TX2 = 1, 2        -- x 8..23
-  local NAME_X = 24
+
+  -- ------- the icon column, ruled off
+  --
+  -- The dex list rules a hairline between its icons and its rows and keeps
+  -- three pixels of air either side of it.  The party had NONE: the name
+  -- column starts at 24, which is the pixel after the icon cell ends, so art
+  -- that fills its cell (and a good deal of it does -- three of six is
+  -- typical for an icon pack) touches the first letter of the name.
+  --
+  -- Ten glyphs of name need exactly 24..104, and 104 is where the level's
+  -- <LV> tile starts, so the gap can only be bought with the tenth glyph.
+  -- That is what RULED ICONS spends: names start at 32 behind a rule at 26,
+  -- and a ten-glyph name comes back nine.  Off restores the full-width
+  -- column, touching icons and all.
+  local NAME_X, NAME_X_WIDE = 32, 24
+  local NAME_GLYPHS, NAME_GLYPHS_WIDE = 9, 10
+  local RULE_X = 26
   local LV_TILE, LV_X = 104, 112         -- the <LV> tile, then the digits
   local LV_WIDE_X = 104                  -- L100: the third digit takes the tile
   local ROW_H = 16
@@ -352,6 +370,15 @@ return function(mod, C)
     local barZoned = PaletteFX.shader() ~= nil
       and PaletteFX.pal(game.data, "GREENBAR") ~= nil
 
+    -- the hairline, the dex's own, down the whole body rather than per row
+    local ruled = C.option("ruled_icons", true) and #party > 0
+    if ruled then
+      C.black()
+      C.rule(RULE_X, C.BODY_TOP, 1, C.BODY_BOTTOM - C.BODY_TOP + 1)
+    end
+    local nameX = ruled and NAME_X or NAME_X_WIDE
+    local nameGlyphs = ruled and NAME_GLYPHS or NAME_GLYPHS_WIDE
+
     for i, mon in ipairs(party) do
       local def = game.data.pokemon[mon.species]
       local y = entryY(i)
@@ -359,7 +386,9 @@ return function(mod, C)
 
       drawIcon(self, mon, y, selected)
 
-      Font.draw(mon.nickname or def.name, NAME_X, y)
+      -- cut on a glyph boundary, never a byte one: a nickname can carry
+      -- NIDORAN's ♂/♀, which is one glyph across several bytes
+      Font.draw(C.truncate(mon.nickname or def.name, nameGlyphs), nameX, y)
 
       -- the level, at the column PrintLevel uses.  At L100 the third digit
       -- takes the <LV> tile's cell, which is why both cases end at 128.
@@ -470,6 +499,8 @@ return function(mod, C)
     ICON_X = ICON_X, NAME_X = NAME_X, ROW_H = ROW_H,
     BAR_TX = BAR_TX, BAR_SEGMENTS = BAR_SEGMENTS,
     RIGHT = C.RIGHT, LEFT = C.LEFT, ABLE_END = ABLE_END,
+    NAME_X_WIDE = NAME_X_WIDE, RULE_X = RULE_X,
+    NAME_GLYPHS = NAME_GLYPHS, NAME_GLYPHS_WIDE = NAME_GLYPHS_WIDE,
     BODY_TOP = C.BODY_TOP, BODY_BOTTOM = C.BODY_BOTTOM, BODY_TY = BODY_TY,
     HEADER_TH = C.HEADER_TH, HEADER_TEXT_Y = C.HEADER_TEXT_Y,
     FOOTER_TY = C.FOOTER_TY, FOOTER_TEXT_Y = C.FOOTER_TEXT_Y,

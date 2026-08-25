@@ -60,6 +60,13 @@ return function(mod)
     -- names the screen it opens.  Off leaves the engine's own word alone.
     { key = "start_says_party", type = "toggle", label = "START: PARTY",
       default = true },
+    -- A hairline between the icons and the names, the one the dex list draws,
+    -- with the names moved off the icon cell to make room for it.  Ten glyphs
+    -- of name need every pixel from 24 to the level column, so the air is
+    -- bought with the tenth: CHARMANDER reads CHARMANDE.  Off restores the
+    -- full-width name column, and the icons touch the names again.
+    { key = "ruled_icons", type = "toggle", label = "RULED ICONS",
+      default = true },
   })
 
   local makeChrome = loadSibling(mod, "chrome.lua")

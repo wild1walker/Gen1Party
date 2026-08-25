@@ -22,6 +22,7 @@ return {
     added = {
       "the START menu's row for this screen says PARTY rather than POKeMON, through the engine's own ui.start_menu.items hook rather than by replacing StartMenu -- next() runs first and its list is decorated, and the row is found by the string the engine built it from (Strings keys on its English source) so it holds under any translation",
       "START: PARTY in the mod manager, which leaves the engine's own word alone when off",
+      "RULED ICONS in the mod manager: a hairline between the icons and the names at the dex list's own column, with the names moved off the icon cell to make room; off restores the full-width name column",
       "an icon mod's authored full-colour art is detected per MON rather than per species -- so a shiny tells itself apart from an ordinary one of its kind -- then marked true-colour and left exactly as its author drew it, instead of being run through a shade remap that keys off the red channel and paints an orange pixel white",
       "SPECIES COLOURS in the mod manager, which restores the vanilla palette answer exactly when off",
       "a load-time failure reports itself: a sibling file that will not read, compile, run or hand back a factory fails the load, so MODS shows the row enabled-but-broken with the reason instead of leaving an enabled mod that draws nothing of its own -- which is what an uninstalled one looks like",
@@ -29,7 +30,8 @@ return {
     known = {
       "the frame was paid for with the second prompt line, not with a party slot: the alternative was a 5-row footer keeping both lines, which leaves 80 pixels of body -- five visible slots and a scroll, on a screen whose whole job is showing the party at once",
       "the level and the status touch: right-aligning FNT on 152 puts it at 128, which is where the level ends, and that 8-pixel gap is exactly what the right margin was bought with -- true since 1.0.0, and only easier to notice now the rest of the screen is framed",
-      "there is no ruled icon column either, unlike the Pokedex list: the rule needs the names to start at 32 and they start at 24, and the eight pixels can only come out of the name column -- which holds a NICKNAME, and cutting CHARMANDER to CHARMANDE to make room for a hairline is not a trade worth making",
+      "the ruled icon column costs the tenth name glyph and is worth it: the name column starts at 24, the pixel after the icon cell ends, so art filling its sixteen pixels touches the first letter with zero air (three of five icons measured on a real party) -- RULED ICONS moves the names to 32 behind a hairline at 26, and CHARMANDER reads CHARMANDE",
+      "a name that FILLS its column still ends 2px from the level, because a full column is a full column -- vanilla did the same with ten glyphs in a ten-glyph column",
       "the HP numbers keep their %3d/%3d padding rather than becoming variable width, because the bar's right cap sits under the first glyph and the pad's SPACE over that cap is what keeps a two-digit HP from colliding with it; a three-digit HP still lands a digit there, exactly as it does in vanilla",
       "a screen factory that throws when the party is PUSHED still degrades to the vanilla menu, because Screens.build pcalls a mod-owned new and falls back; only the BOOT is loud, where nothing is at risk and the only question is whether the player is told",
       "only draw and sgbPalettes are replaced -- every mode, key and callback is still the engine's -- so anything wrong with what the party menu DOES is not this mod",

@@ -45,6 +45,13 @@ falls back to this mod's own line:
 | Item | `Use item on which\nPOKéMON?` | `Use item on which?` |
 | Battle | `Bring out which\nPOKéMON?` | `Bring out which?` |
 
+### The icon column is ruled off
+
+A hairline at x=26 down the whole body with the names at 32 — the same column
+and the same rule Gen1Dex draws, so the two screens line up. Without it the
+names start at 24, the pixel after the icon cell ends, and art that fills its
+cell touches the first letter.
+
 ### The START menu says PARTY
 
 `POKéMON` is the word the cart uses for that row, and it is also most of the
@@ -116,6 +123,7 @@ kept here so the mod behaves the same on either engine.
 | --- | --- | --- |
 | `SPECIES COLOURS` | ON | Every member in its own species colours over the grey ramp. Off restores the vanilla answer exactly — the `GREENBAR` base and the single `MEWMON` column — for anyone who wants the 1996 screen with nothing changed but the margins. |
 | `START: PARTY` | ON | The START menu's row for this screen says `PARTY` rather than `POKéMON`. Off leaves the engine's own word alone. |
+| `RULED ICONS` | ON | A hairline between the icons and the names, the one the dex list draws, with the names moved off the icon cell to make room. Costs the tenth name glyph — `CHARMANDER` reads `CHARMANDE`. Off restores the full-width column, and the icons touch the names again. |
 
 ---
 
@@ -183,13 +191,21 @@ The alternative was a 5-row footer keeping both lines, which leaves 80 pixels
 of body: five visible slots and a scroll, on a screen whose whole job is
 showing you the party at once. The words were the cheaper thing to spend.
 
-### There is no ruled icon column either
+### The ruled icon column, and what it cost
 
-The Pokédex list rules a hairline between its icons and its names. That rule
-needs the names to start at 32; here they start at 24, and the eight pixels can
-only come out of the name column — which holds a **nickname**, and a nickname
-is the player's own text. Cutting `CHARMANDER` to `CHARMANDE` to make room for
-a hairline is not a trade worth making.
+The same eight pixels, twice over. The Pokédex list rules a hairline between
+its icons and its rows; that rule needs the names off the icon cell, and ten
+glyphs of name need every pixel from 24 to the level column at 104 — so the
+tenth glyph is what buys it.
+
+This was left undone for two versions on the grounds that a nickname is the
+player's own text. What settled it was measuring a real party: the name column
+starts at 24, which is the pixel *after* the icon cell ends, so art that fills
+its sixteen pixels sits flush against the first letter with **zero** air. Three
+of five icons, at 0px. That costs more than the tenth glyph does.
+
+A name that fills its column still ends 2px from the level — a full column is
+a full column, and vanilla did the same with ten glyphs in a ten-glyph column.
 
 ### Full-colour icons sit out the palette pass
 

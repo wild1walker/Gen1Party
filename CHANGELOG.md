@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.3.0
+
+The icon column is ruled off from the names, the way the dex list's is.
+
+- **The icons were touching the names.** Not nearly — *touching*. The name
+  column starts at 24, which is the pixel after the icon cell ends, so art
+  that fills its 16 pixels leaves zero air before the first letter. Measured
+  on a real party: three of five icons at 0px, the other two at 2px. Gen1Dex
+  keeps 3px to its rule and 5px more to its text.
+- **Now: a hairline at x=26 down the whole body, names at 32.** The same
+  column and the same rule the dex list draws, so the two screens line up.
+- **It costs the tenth name glyph.** Ten glyphs need every pixel from 24 to
+  the level column at 104, so the air can only come from there: `CHARMANDER`
+  reads `CHARMANDE`. That is roughly fourteen species and any ten-character
+  nickname. New option `RULED ICONS`, default on — off restores the
+  full-width name column, and the icons touch again.
+- Cuts land on a glyph boundary, never a byte one: a nickname can carry
+  NIDORAN's ♂/♀, which is one glyph across several bytes.
+- Unchanged, and worth knowing: a name that *fills* its column still ends 2px
+  from the level, because a full column is a full column. Vanilla did exactly
+  the same with a ten-glyph name in a ten-glyph column.
+- Suite is 222 checks, up from 211 — the rule's column and its span asserted
+  against the body, the cut asserted as `CHARMANDE`, and the option's off
+  state asserted to give the tenth glyph back and take the rule with it.
+
 ## 1.2.0
 
 Names the screen, in both places you meet it.

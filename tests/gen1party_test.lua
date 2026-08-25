@@ -149,7 +149,7 @@ end
 -- HP numbers 104..160.  Record what is actually drawn and measure it.
 
 local function recordDraw(screen)
-  local drawn = { boxes = {} }
+  local drawn = { boxes = {}, rules = {} }
   local realDraw, realBox = Font.draw, Font.drawBox
   Font.draw = function(text, x, y)
     local ok, w = pcall(Font.width, text)
@@ -161,8 +161,18 @@ local function recordDraw(screen)
     drawn.boxes[#drawn.boxes + 1] = { tx = tx, ty = ty, tw = tw, th = th }
     return realBox(tx, ty, tw, th)
   end
+  -- the hairline goes through love.graphics.rectangle like the screen clear
+  -- does, so record the thin ones and let the full-screen fill through
+  local realRect = love.graphics.rectangle
+  love.graphics.rectangle = function(mode, x, y, w, h, ...)
+    if w == 1 and h and h > 1 then
+      drawn.rules[#drawn.rules + 1] = { x = x, y = y, w = w, h = h }
+    end
+    return realRect(mode, x, y, w, h, ...)
+  end
   local ok, err = pcall(screen.draw, screen)
   Font.draw, Font.drawBox = realDraw, realBox
+  love.graphics.rectangle = realRect
   T.check(ok, "the screen draws (" .. tostring(err) .. ")")
   return drawn
 end
@@ -208,19 +218,55 @@ do
 end
 
 do
-  -- The name column keeps its full width: the ruled icon column was skipped
-  -- precisely so a ten-glyph nickname is never cut.
+  -- What RULED ICONS costs, stated as a test rather than as a promise: the
+  -- rule needs the names off the icon cell, and ten glyphs of name need every
+  -- pixel from 24 to the level column, so the tenth is what pays for it.
   local party = { mon("FIXMON_A", 30, 45, 45, { nickname = "CHARMANDER" }) }
   local game = fakeGame(party)
   local menu = factory.new(game)
   local drawn = recordDraw(menu)
   local found
   for _, d in ipairs(drawn) do
-    if d.text == "CHARMANDER" then found = d end
+    if d.x == geometry.NAME_X and d.text:find("CHARMAND", 1, true) then
+      found = d
+    end
   end
-  T.check(found ~= nil, "a ten-glyph nickname is printed whole")
-  T.eq(found.x, 24, "at the vanilla name column")
+  T.check(found ~= nil, "the nickname is printed in the name column")
+  T.eq(found.text, "CHARMANDE", "cut to nine glyphs, on a glyph boundary")
+  T.eq(found.x, geometry.NAME_X, "at the ruled name column")
   T.check(found.x + found.w <= 104, "without running into the level column")
+
+  -- and the hairline it was cut for, where the dex list draws its own
+  local rules = {}
+  for _, r in ipairs(drawn.rules) do rules[#rules + 1] = r end
+  T.eq(#rules, 1, "one hairline, not one per row")
+  T.eq(rules[1].x, geometry.RULE_X, "at the dex list's own column")
+  T.eq(rules[1].y, geometry.BODY_TOP, "from the top of the body")
+  T.eq(rules[1].y + rules[1].h - 1, geometry.BODY_BOTTOM, "to the bottom of it")
+  T.check(rules[1].x > 23, "clear of the icon cell")
+  T.check(rules[1].x + 1 < geometry.NAME_X, "and clear of the names")
+end
+
+do
+  -- RULED ICONS off gives the tenth glyph back, and takes the rule away with
+  -- it -- the two are the same eight pixels.
+  local loader = run.loader
+  if loader.modOptions then
+    local saved = loader.modOptions.Gen1Party
+    loader.modOptions.Gen1Party = { ruled_icons = false }
+    local party = { mon("FIXMON_A", 30, 45, 45, { nickname = "CHARMANDER" }) }
+    local menu = factory.new(fakeGame(party))
+    local drawn = recordDraw(menu)
+    loader.modOptions.Gen1Party = saved
+
+    local whole
+    for _, d in ipairs(drawn) do
+      if d.text == "CHARMANDER" then whole = d end
+    end
+    T.check(whole ~= nil, "off, a ten-glyph nickname is printed whole")
+    T.eq(whole and whole.x, geometry.NAME_X_WIDE, "at the vanilla name column")
+    T.eq(#drawn.rules, 0, "and no hairline is drawn")
+  end
 end
 
 -- ------- the HP bar keeps all six segments

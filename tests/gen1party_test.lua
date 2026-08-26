@@ -149,7 +149,7 @@ end
 -- HP numbers 104..160.  Record what is actually drawn and measure it.
 
 local function recordDraw(screen)
-  local drawn = { boxes = {}, rules = {} }
+  local drawn = { boxes = {}, rules = {}, codes = {} }
   local realDraw, realBox = Font.draw, Font.drawBox
   Font.draw = function(text, x, y)
     local ok, w = pcall(Font.width, text)
@@ -170,8 +170,14 @@ local function recordDraw(screen)
     end
     return realRect(mode, x, y, w, h, ...)
   end
+  -- the cursor and the <LV> tile go through drawCode, not draw
+  local realCode = Font.drawCode
+  Font.drawCode = function(code, x, y)
+    drawn.codes[#drawn.codes + 1] = { code = code, x = x, y = y }
+    return realCode(code, x, y)
+  end
   local ok, err = pcall(screen.draw, screen)
-  Font.draw, Font.drawBox = realDraw, realBox
+  Font.draw, Font.drawBox, Font.drawCode = realDraw, realBox, realCode
   love.graphics.rectangle = realRect
   T.check(ok, "the screen draws (" .. tostring(err) .. ")")
   return drawn
@@ -308,7 +314,7 @@ do
   local vanilla = PartyMenu.new(game, {})
   local ours = factory.new(fakeGame(FULL), {})
 
-  local skip = { draw = true, sgbPalettes = true }
+  local skip = { draw = true, sgbPalettes = true, update = true }
   local missing = {}
   for key, value in pairs(vanilla) do
     if not skip[key] and ours[key] == nil and value ~= nil then
@@ -321,7 +327,12 @@ do
 
   T.neq(ours.draw, vanilla.draw, "draw is replaced")
   T.neq(ours.sgbPalettes, vanilla.sgbPalettes, "and so is sgbPalettes")
-  T.eq(ours.update, vanilla.update, "update is the engine's, untouched")
+  -- The third, and the only one that changes what a key does: MOVE.  It is a
+  -- WRAPPER rather than a rewrite, and the section below drives it to show
+  -- that every other key still reaches the engine's own update.
+  T.neq(ours.update, vanilla.update, "and so is update, for the carry")
+  T.eq(ours.bottomMessage, vanilla.bottomMessage,
+       "bottomMessage is still the engine's, so the prompts are still its own")
   T.eq(ours.isOpaque, vanilla.isOpaque, "and the screen is still opaque")
 end
 
@@ -412,6 +423,322 @@ do
     T.eq(z.y, geometry.BODY_TOP + (i - 1) * geometry.ROW_H + 8,
          "bar zone " .. i .. " sits on its own slot's HP row")
     T.eq(z.h, 8, "and is one tile row tall")
+  end
+end
+
+-- ------- MOVE: the member is in your hand
+--
+-- The one thing on this screen that is not the engine's.  The engine's
+-- SWITCH is two picks over a list that never moves; this is Gen1BillsBox's
+-- answer -- the member is lifted, it flashes, and it travels through the
+-- list a row at a time with the party reordered under it as it goes.
+--
+-- Driven a press at a time through the real update, so what is asserted is
+-- what a player's thumb does: nothing here reaches into the screen's state
+-- to set up a carry.
+
+local Strings = require("src.core.Strings")
+local Theme = require("src.ui.Theme")
+
+local function copyOf(list)
+  local out = {}
+  for i, value in ipairs(list) do out[i] = value end
+  return out
+end
+
+-- one press, one update -- the loop the engine runs
+local function driver(party, opts)
+  local game = fakeGame(party)
+  local menu = factory.new(game, opts)
+  local function press(key)
+    game.press(key or "none")
+    menu:update(1 / 60)
+  end
+  return game, menu, press
+end
+
+local function rowOf(items, action)
+  for i, entry in ipairs(items) do
+    if entry.action == action then return i, entry end
+  end
+end
+
+-- A over a member, then A over the row that moves it
+local function lift(press, menu)
+  press("a")
+  local at = rowOf(menu.subItems or {}, "switch")
+  for _ = 2, at or 1 do press("down") end
+  press("a")
+end
+
+local function census(party)
+  local seen = {}
+  for _, mon in ipairs(party) do seen[mon] = (seen[mon] or 0) + 1 end
+  return seen
+end
+
+do
+  -- the popup's word
+  local _, menu, press = driver(copyOf(FULL))
+  press("a")
+  T.check(menu.submenu == true, "A over a member opens the engine's popup")
+  local at, row = rowOf(menu.subItems or {}, "switch")
+  T.check(row ~= nil, "which still carries the engine's own switch row")
+  T.eq(row and row.label, Strings("MOVE"), "relabelled MOVE")
+  T.eq(at, #menu.subItems, "in the place the engine put it, under STATS")
+  local saidSwitch = false
+  for _, entry in ipairs(menu.subItems) do
+    if entry.label == Strings("SWITCH") then saidSwitch = true end
+  end
+  T.check(not saidSwitch, "and nothing on the popup says SWITCH any more")
+  -- the rest of the list is the engine's, untouched
+  T.check(rowOf(menu.subItems, "stats") ~= nil, "STATS is still on it")
+end
+
+do
+  -- the battle popup's SWITCH is a different verb -- "send this one out" --
+  -- and keeps its own word
+  local _, menu, press = driver(copyOf(FULL),
+    { battle = {}, onSwitch = function() end })
+  press("a")
+  local _, row = rowOf(menu.subItems or {}, "battle_switch")
+  T.check(row ~= nil, "the battle popup offers the battle switch")
+  T.eq(row and row.label, Strings("SWITCH"), "and it is left saying SWITCH")
+end
+
+do
+  -- picking one up
+  local party = copyOf(FULL)
+  local game, menu, press = driver(party)
+  lift(press, menu)
+  T.eq(menu.submenu, nil, "MOVE closes the popup")
+  T.eq(menu.moveFrom, 1, "and lifts the member the cursor was on")
+  T.eq(menu.swapFrom, 1,
+       "the engine's own in-the-air flag says so, so the footer does too")
+  T.eq(menu.index, 1, "the cursor has not moved yet")
+  T.check(menu:bottomMessage():find("Move", 1, true) ~= nil,
+          "and the prompt is the engine's swap prompt")
+
+  -- and DOWN carries it, reordering the party as it goes
+  local first, second = party[1], party[2]
+  press("down")
+  T.eq(menu.index, 2, "DOWN moves the cursor")
+  T.eq(party[2], first, "and the member goes with it")
+  T.eq(party[1], second, "the row it passed comes up behind it")
+  T.eq(menu.swapFrom, 2, "the flag follows the member, not the row it left")
+  T.eq(game.partyMenuSavedIndex, 2, "and the saved index follows the cursor")
+
+  -- A lets go, and there is nothing to commit: the array already is the list
+  press("a")
+  T.eq(menu.moveFrom, nil, "A puts it down")
+  T.eq(menu.swapFrom, nil, "and the screen is a plain list again")
+  T.eq(party[2], first, "the member stayed where it was let go")
+  T.eq(#party, 6, "with the party still six long")
+end
+
+do
+  -- A RUN of steps is an insertion, not an exchange: carry the fourth member
+  -- to the top and the three it passed keep the order they already had.
+  -- Vanilla's SWITCH would have traded the first and the fourth and left the
+  -- two between them alone.
+  local party = copyOf(FULL)
+  local before = copyOf(party)
+  local _, menu, press = driver(party)
+  press("down") press("down") press("down")     -- the cursor, on row 4
+  T.eq(menu.index, 4, "the cursor walks the list before anything is lifted")
+  lift(press, menu)
+  press("up") press("up") press("up")
+
+  T.eq(menu.index, 1, "the member is carried to the top")
+  T.eq(party[1], before[4], "and it is the one that was fourth")
+  T.eq(party[2], before[1], "the first is now second")
+  T.eq(party[3], before[2], "the second third")
+  T.eq(party[4], before[3], "and the third fourth -- their own order, kept")
+  T.eq(party[5], before[5], "the rows it never reached are untouched")
+  T.eq(party[6], before[6], "both of them")
+
+  local was, now = census(before), census(party)
+  local same = true
+  for mon, n in pairs(was) do if now[mon] ~= n then same = false end end
+  T.check(same and #party == #before,
+          "and no POKéMON was created or lost on the way")
+end
+
+do
+  -- B is BACK, not out: it walks the member home, and because every step
+  -- leaves the others in their own order, home is the party it started as
+  local party = copyOf(FULL)
+  local before = copyOf(party)
+  local game, menu, press = driver(party)
+  press("down") press("down")
+  lift(press, menu)
+  press("up") press("up")                       -- to the top
+  T.eq(party[1], before[3], "the member is carried to the top")
+
+  press("b")
+  T.eq(menu.moveFrom, nil, "B puts it down")
+  T.eq(menu.index, 3, "back in the row it was picked up from")
+  for i = 1, #before do
+    T.eq(party[i], before[i], "slot " .. i .. " is exactly as it was")
+  end
+  T.eq(#game.stack.states, 0, "and B did not close the menu")
+end
+
+do
+  -- B with nothing in hand still closes the menu, the way it always did
+  local game = fakeGame(copyOf(FULL))
+  local menu = factory.new(game)
+  game.stack:push(menu)
+  game.press("b")
+  menu:update(1 / 60)
+  T.eq(#game.stack.states, 0, "B with empty hands is still the way out")
+end
+
+do
+  -- The wrap is the list's own: the cursor wraps, so the member does, and
+  -- there it is a rotation -- every other member still keeps its order.
+  local party = copyOf(FULL)
+  local before = copyOf(party)
+  local _, menu, press = driver(party)
+  lift(press, menu)
+  press("up")
+  T.eq(menu.index, 6, "UP off the top lands on the last row")
+  T.eq(party[6], before[1], "and the member is there")
+  for i = 1, 5 do
+    T.eq(party[i], before[i + 1], "the rest shifted up one, in their order")
+  end
+end
+
+do
+  -- A party of one has nowhere to go, and must not crash trying
+  local party = { mon("FIXMON_A", 5, 20, 20) }
+  local _, menu, press = driver(party)
+  lift(press, menu)
+  press("down") press("up")
+  T.eq(menu.index, 1, "a party of one stays put")
+  T.eq(#party, 1, "with its one member still in it")
+  press("a")
+  T.eq(menu.moveFrom, nil, "and it can still be put down")
+end
+
+do
+  -- The one rule the engine has about moving a POKéMON: Yellow's starter
+  -- Pikachu will not be moved while it is not following you.  Vanilla refuses
+  -- the A press on either end of its swap; a carry presses A over neither of
+  -- the rows it displaces, so the same question is asked of every row the
+  -- step would move.
+  local pika = mon("PIKACHU", 10, 20, 20, { ot = "RED", otId = 1 })
+  local party = { FULL[1], pika, FULL[3] }
+  local before = copyOf(party)
+  local game, menu, press = driver(party)
+  game.overworld = { pikachuBillsScene = true }
+  lift(press, menu)
+  press("down")
+  T.eq(menu.index, 1, "the carry is refused rather than walking past it")
+  for i = 1, #before do
+    T.eq(party[i], before[i], "slot " .. i .. " did not move")
+  end
+  T.eq(menu.moveFrom, 1, "and the member is still in hand")
+  T.check(#game.stack.states > 0, "the engine's own refusal is printed")
+
+  -- with the scene over, the same press moves it
+  game.overworld = nil
+  game.stack:pop()
+  press("down")
+  T.eq(party[2], before[1], "once it is following again, the step lands")
+end
+
+do
+  -- The flash: sixteen steps lit and eight dark, and it is the whole ROW that
+  -- blinks, because on this screen the row is the member.  The cursor is not
+  -- part of it -- it is where your thumb is -- and goes hollow instead.
+  local party = copyOf(FULL)
+  local _, menu, press = driver(party)
+  lift(press, menu)
+
+  local function names(drawn)
+    local n = 0
+    for _, d in ipairs(drawn) do
+      if d.x == geometry.NAME_X then n = n + 1 end
+    end
+    return n
+  end
+  local function cursorAt(drawn, y)
+    for _, c in ipairs(drawn.codes) do
+      if c.x == 0 and c.y == y then return c.code end
+    end
+  end
+
+  local cursorY = geometry.BODY_TOP + 8
+  local lit = recordDraw(menu)
+  T.eq(names(lit), 6, "the member is drawn on the lit stretch of the cycle")
+  T.eq(cursorAt(lit, cursorY), Theme.cursorHollow,
+       "with a hollow cursor beside it, the way the box marks a carried one")
+
+  for _ = 1, geometry.FLASH_ON do press() end
+  local dark = recordDraw(menu)
+  T.eq(names(dark), 5, "and not drawn on the dark stretch")
+  T.eq(cursorAt(dark, cursorY), Theme.cursorHollow,
+       "while the cursor stays put -- one that blinked would read as dropped "
+         .. "frames")
+
+  for _ = 1, geometry.FLASH_PERIOD - geometry.FLASH_ON do press() end
+  T.eq(names(recordDraw(menu)), 6, "and it comes back on the next cycle")
+
+  -- put it down and the flashing stops, cursor filled again
+  press("a")
+  local still = recordDraw(menu)
+  T.eq(names(still), 6, "a member let go is drawn on every frame")
+  T.eq(cursorAt(still, cursorY), Theme.cursor, "under the filled cursor again")
+end
+
+do
+  -- Nobody else flashes: only the member in your hand.
+  local party = copyOf(FULL)
+  local _, menu, press = driver(party)
+  lift(press, menu)
+  for _ = 1, geometry.FLASH_ON do press() end
+  local drawn = recordDraw(menu)
+  local rows = {}
+  for _, d in ipairs(drawn) do
+    if d.x == geometry.NAME_X then rows[d.y] = true end
+  end
+  T.check(not rows[geometry.BODY_TOP], "the carried row is the dark one")
+  for i = 2, 6 do
+    T.check(rows[geometry.BODY_TOP + (i - 1) * geometry.ROW_H],
+            "slot " .. i .. " is drawn right through it")
+  end
+end
+
+do
+  -- MOVE NOT SWITCH off restores the engine's answer exactly: the row says
+  -- SWITCH, and it is two picks and one exchange over a list that does not
+  -- move.
+  local loader = run.loader
+  if loader.modOptions then
+    local saved = loader.modOptions.Gen1Party
+    loader.modOptions.Gen1Party = { live_move = false }
+
+    local party = copyOf(FULL)
+    local before = copyOf(party)
+    local _, menu, press = driver(party)
+    press("a")
+    local _, row = rowOf(menu.subItems or {}, "switch")
+    T.eq(row and row.label, Strings("SWITCH"), "off, the popup says SWITCH")
+    for _ = 2, #menu.subItems do press("down") end
+    press("a")
+    T.eq(menu.moveFrom, nil, "nothing is lifted")
+    T.eq(menu.swapFrom, 1, "the engine is waiting for a second pick")
+
+    press("down") press("down")
+    T.eq(party[1], before[1], "the list does not move while the cursor does")
+    T.eq(menu.index, 3, "the cursor is on the second pick")
+    press("a")
+    T.eq(party[1], before[3], "and A exchanges the two")
+    T.eq(party[3], before[1], "both ways")
+    T.eq(party[2], before[2], "leaving the row between them alone")
+
+    loader.modOptions.Gen1Party = saved
   end
 end
 

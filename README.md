@@ -45,6 +45,51 @@ falls back to this mod's own line:
 | Item | `Use item on which\nPOKéMON?` | `Use item on which?` |
 | Battle | `Bring out which\nPOKéMON?` | `Bring out which?` |
 
+### `SWITCH` is `MOVE`, and the POKéMON travels
+
+The engine's `SWITCH` is two picks over a list that never moves: press A on
+one member, press A on a second, and the two change places. Between the two
+presses the only sign of what you are doing is a hollow arrow beside a row you
+have already left.
+
+Gen1BillsBox answers the same question by putting the POKéMON in your **hand**.
+This is that answer, on the party list:
+
+| Key | What it does |
+| --- | --- |
+| **A**, on the popup's `MOVE` row | Lifts the member the cursor is on. It **flashes** — sixteen frames lit, eight dark, the box's own blink to the frame. |
+| **UP** / **DOWN** | Carries it, a row at a time. The list reorders under it as it goes. |
+| **A** | Lets go. |
+| **B** | Walks it home, and leaves the party exactly as it was. |
+
+The popup row says `MOVE` because `MOVE` is what it now does — `SWITCH`
+describes an exchange, and this is not one. A run of steps is an
+**insertion**: carry the fourth member to the top and the three it passed keep
+the order they already had, where the vanilla swap would have traded the first
+and the fourth and left the two between them alone.
+
+The party array is reordered on **every step**, not once at the end. That is
+the load-bearing part, and it is the same rule Gen1BillsBox's party pane
+keeps: party order *is* battle order — `party[1]` is who you send out — so a
+list drawn in one order over an array stored in another has a lead POKéMON
+nobody on screen can see. There is no such window here. It is also why letting
+go costs nothing: there is nothing left to commit.
+
+`B` is *back* rather than *out*, again as it is in the box: it walks the
+member home instead of closing the menu, and because every step leaves the
+other members in their own order, putting this one back in the row it started
+in restores the party exactly, however far it travelled. There is no way to
+leave this screen holding a POKéMON.
+
+Two things are deliberately kept from the engine. The footer still prints the
+engine's own swap prompt, because the engine's `swapFrom` is still what says a
+member is in the air — so a reworded or translated prompt is still the one you
+read. And the battle popup's `SWITCH` is left saying `SWITCH`: that one means
+*send this one out*, which is a different verb wearing the same six letters.
+
+`MOVE NOT SWITCH` turns the whole thing off and gives the engine's two-pick
+swap back.
+
 ### The icon column is ruled off
 
 A hairline at x=26 down the whole body with the names at 32 — the same column
@@ -124,6 +169,7 @@ kept here so the mod behaves the same on either engine.
 | `SPECIES COLOURS` | ON | Every member in its own species colours over the grey ramp. Off restores the vanilla answer exactly — the `GREENBAR` base and the single `MEWMON` column — for anyone who wants the 1996 screen with nothing changed but the margins. |
 | `START: PARTY` | ON | The START menu's row for this screen says `PARTY` rather than `POKéMON`. Off leaves the engine's own word alone. |
 | `RULED ICONS` | ON | A hairline between the icons and the names, the one the dex list draws, with the names moved off the icon cell to make room. Costs the tenth name glyph — `CHARMANDER` reads `CHARMANDE`. Off restores the full-width column, and the icons touch the names again. |
+| `MOVE NOT SWITCH` | ON | The popup row says `MOVE`, and A lifts that member: it flashes, UP and DOWN carry it through the list, and the party is reordered under it as it goes. Off restores the engine's own `SWITCH` — two picks over a list that does not move, and one exchange when the second lands. |
 
 ---
 
@@ -139,6 +185,11 @@ from the game: **MODS → Import mod .zip**.
 
 This mod replaces how the party menu is **drawn** and nothing else, so there
 are a few ways for a working install to read as no install at all.
+
+**The popup says `MOVE`.** From 1.4.0, A over a member opens a popup whose
+bottom row says `MOVE` rather than `SWITCH`, and pressing it picks the POKéMON
+up. If it says `SWITCH`, either this mod is not drawing or `MOVE NOT SWITCH` is
+off.
 
 **Check for the boxes, not the icons.** From 1.1.0 the answer is obvious at a
 glance: a header box across the top saying `POKéMON` and a boxed footer across
@@ -166,17 +217,27 @@ proof that it loaded.
 
 ## How it works
 
-One registered screen replacement — it replaces **two methods**, `draw` and
-`sgbPalettes` — plus one relabelled row on the START menu, through the engine's
-own hook. Everything else is the engine's.
+One registered screen replacement — it replaces **three methods**, `draw`,
+`sgbPalettes` and `update` — plus one relabelled row on the START menu, through
+the engine's own hook. Everything else is the engine's.
 
 That restraint is the whole design. `PartyMenu` is not one screen but seven
 behind a single id — the field menu, the battle switch, the forced switch after
 a faint, the item target, the TM/HM teach list with its `ABLE` / `NOT ABLE`
 column, the `SOFTBOILED` donor, and the evolution-stone list. Each has its own
 input rules, its own bottom message and its own idea of what A does. This mod
-has an opinion about how the party *looks* and none at all about what it does,
-so the vanilla constructor builds the screen and only the drawing is swapped.
+has an opinion about how the party *looks*, and exactly one verb's worth of
+opinion about what it does, so the vanilla constructor builds the screen and
+everything else is left where it was.
+
+`update` is a **wrapper**, not a rewrite: it hands the frame to the engine's
+own update, which reads every key on this screen — including the A that opens
+the popup and the A that picks a row on it. The only frames it keeps for itself
+are the ones with a POKéMON in your hand, which is a state the engine has no
+rules about because vanilla never had one. When the engine's `SWITCH` sets
+`swapFrom` and settles in to wait for a second pick, the wrapper takes the
+member out of the list's hands and into the player's instead, and the engine's
+own swap branch is simply never reached.
 
 The suite checks that directly: it diffs every field the vanilla constructor
 sets against the one this mod hands back, and fails if any of them went missing.

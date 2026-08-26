@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.4.0
+
+The popup's `SWITCH` becomes `MOVE`, and moving a POKéMON is Gen1BillsBox's
+answer rather than the engine's: the member is in your hand.
+
+- **It flashes, and it travels.** A on the `MOVE` row lifts the member the
+  cursor is on — sixteen frames lit and eight dark, the box's own blink to the
+  frame — and UP and DOWN carry it through the list a row at a time, with the
+  party reordered under it as it goes. A lets go; B walks it home.
+- **The row says what it does.** `SWITCH` describes an exchange between two
+  picks, and this is not one, so the row is relabelled `MOVE`. The *battle*
+  popup's `SWITCH` is left alone: that one means *send this one out*, a
+  different verb wearing the same six letters.
+- **A run of steps is an insertion, not an exchange.** Carry the fourth member
+  to the top and the three it passed keep the order they already had. Vanilla's
+  swap would have traded the first and the fourth and left the two between them
+  alone.
+- **The array is reordered on every step, not at the end.** Party order *is*
+  battle order — `party[1]` is who you send out — so a list drawn in one order
+  over an array stored in another has a lead POKéMON nobody on screen can see.
+  There is no such window here, and nothing left to commit when you let go.
+- **B is back, not out.** It walks the member home rather than closing the
+  menu, and since every step leaves the others in their own order, home is the
+  party exactly as it was. There is no way to leave the screen holding one.
+- Yellow's sleeping starter Pikachu still will not be moved. The engine refuses
+  the A press on either end of its swap, which a carry never presses, so the
+  same question is asked of every row a step would displace — otherwise the one
+  rule the engine has about moving a POKéMON is walked around by moving the one
+  beside it.
+- New option `MOVE NOT SWITCH`, default on — off restores the engine's two
+  picks and one exchange exactly, hollow arrow and all.
+- This is the first release that changes what the party menu *does*. `update`
+  is replaced as a **wrapper**: it hands every frame to the engine's own update
+  and keeps only the ones with a POKéMON in hand, so every other key, mode and
+  callback is still the engine's.
+- Suite is 308 checks, up from 222 — the carry driven a press at a time through
+  the real update, asserting the reorder, the insertion, the wrap, B's restore,
+  the refusal, the flash's lit and dark stretches, and the option's off state
+  running the engine's swap.
+
 ## 1.3.0
 
 The icon column is ruled off from the names, the way the dex list's is.

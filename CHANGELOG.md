@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.5.0
+
+A POKéMON's icon wears its condition. Poisoned is purple, fainted is grey, and
+the rest of the statuses have their own colour -- over the species colours the
+icons already wear, so a poisoned CHARMANDER still reads as a CHARMANDER.
+
+The colours are not defined here. They come from **STATUS COLOURS** in
+[Gen1WildQOL](https://github.com/wild1walker/Gen1WildQOL) 1.6.0, which is the
+mod that turns the overworld purple while you walk poisoned, and which owns one
+table of what each condition looks like so the party, the box and the dex agree
+instead of drifting apart. This asks it; without that mod installed there is no
+tint and the zones are the species colours exactly as before.
+
+It rides the same per-POKéMON zone this mod already builds, so it costs nothing
+extra to draw and full-colour icon art still sits out the pass untouched.
+
 ## 1.4.0
 
 The popup's `SWITCH` becomes `MOVE`, and moving a POKéMON is Gen1BillsBox's

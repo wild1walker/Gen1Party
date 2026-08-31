@@ -517,11 +517,39 @@ return function(mod, C)
 
   -- ------- drawing
 
+
+  -- ------- the matte behind true-colour art
+  --
+  -- `PaletteFX.markTrueColor` blits a rectangle RAW so a coloured icon keeps
+  -- its own colours instead of being read as four shades.  Raw means raw: the
+  -- white page under it stays white when everything around it goes black,
+  -- which is the white box behind every icon on a dark screen.
+  --
+  -- So the rectangle is painted with what the theme will make of it BEFORE
+  -- the art goes in.  Only ever inside a rectangle about to be marked -- a
+  -- dark rectangle anywhere else is shade-3 pixels, which the theme maps to
+  -- the page's ink and puts a hole in the page.
+  --
+  -- Under LIGHT the colour is white, which is what this drew before the theme
+  -- existed, so a build with no theme in it is unchanged.
+  local function matte(x, y, w, h)
+    local theme = type(mod.theme) == "function" and mod.theme() or nil
+    local colour = theme and type(theme.matte) == "function"
+      and theme.matte() or nil
+    if type(colour) ~= "table" then return end
+    love.graphics.setColor(colour[1] / 255, colour[2] / 255, colour[3] / 255, 1)
+    love.graphics.rectangle("fill", x, y, w, h)
+  end
+
   local function drawIcon(self, mon, y, selected)
+    -- before the art, and only where the art will be marked
+    local rect = fullColour(self.game, mon)
+    if rect then
+      matte(ICON_X, y, rect.w, rect.h)
+    end
     C.white()
     pcall(PartyMenu.drawIcon, self.game, mon, ICON_X, y, selected,
           self.blink or 0)
-    local rect = fullColour(self.game, mon)
     if rect then
       pcall(PaletteFX.markTrueColor, ICON_X, y, rect.w, rect.h)
     end
@@ -756,6 +784,10 @@ return function(mod, C)
     menu.draw = draw
     menu.sgbPalettes = palettesFor(vanillaSgb)
     menu.update = updateFor(PartyMenu.update)
+    -- one of ours, as far as UI THEME is concerned: the theme reads this off
+    -- the instance rather than matching the engine's class, and it costs
+    -- nothing when no theme is installed
+    menu.gen1wildTheme = "party"
     return menu
   end
 

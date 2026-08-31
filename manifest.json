@@ -1,7 +1,7 @@
 {
   "id": "Gen1Party",
   "name": "Gen1Party",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "api": 2,
   "games": [
     "gen1"

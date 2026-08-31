@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.8.0
+
+Gen1WildUI carried this as an overlay while it was ahead of a release here; it
+shipped in the bundle's 1.22.0. Same code, in the mod that owns it.
+
+- The page under a full-colour icon is painted before the art goes in.
+  `PaletteFX.markTrueColor` blits the rectangle raw so a coloured icon keeps
+  its own colours instead of being read as four shades — and raw means raw, so
+  the white page under it stayed white when everything around it went black.
+  That was the white box behind every icon on a dark screen.
+
+It asks `mod.theme` for the colour, and only a bundle installs one. **With no
+theme provider this is inert**, so a standalone Gen1Party draws exactly as it
+did — the change is here so the code lives with the feature rather than in a
+bundle's overlay.
+
 ## 1.7.0
 
 The status tint is removed, at the author's request. Icons are drawn as they

@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.8.2
+
+- **The row the message box cuts through keeps its colours.** 1.8.1 dropped an
+  icon's matte and its `trueColor` mark for the whole 16x16 cell as soon as the
+  box reached any part of it -- and the box's top edge does not land on a row
+  boundary. The header moved every row down 24, so a box at `y=96` runs
+  *through* slot 5 (88..104) rather than covering it, and the half still on the
+  page had no mark on it. An unmarked icon is read as four shades: one picture
+  going grey while the four above it stayed in colour.
+
+  The cell was never the unit. What re-blits over the box is the part of the
+  cell **under** it, so that is the only part that lets go; the strip still on
+  the page keeps its matte and its mark. The icon is drawn whole either way --
+  the box is painted after it and covers the rest -- so clipping the rectangle
+  is the whole of the fix. Gen1ModernBag makes the same cut sideways for the
+  same reason (1.13.1): its pop-ups are anchored to the right edge, so what
+  they leave is a slab at the left rather than a band at the top.
+
 ## 1.8.1
 
 - **No inverted square behind the party sprites while the message box is up.**

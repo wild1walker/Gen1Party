@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.8.1
+
+- **No inverted square behind the party sprites while the message box is up.**
+  Picking the POKeMON you are already using puts a message box over the party
+  list, and the icon underneath kept both its matte and its `trueColor` mark.
+  A mark re-blits its region **raw** once the pass composes -- after the box
+  was drawn over it -- so the icon came back on top of the box as a hard
+  inverted block.
+
+  An icon that the box covers now drops the matte and the mark together. They
+  go as a pair on purpose: the mark without the matte would re-blit bare
+  ground, which is the same bug pointed the other way.
+
+
 ## 1.8.0
 
 Gen1WildUI carried this as an overlay while it was ahead of a release here; it

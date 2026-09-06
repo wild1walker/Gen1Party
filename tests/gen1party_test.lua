@@ -485,7 +485,13 @@ do
   local at, row = rowOf(menu.subItems or {}, "switch")
   T.check(row ~= nil, "which still carries the engine's own switch row")
   T.eq(row and row.label, Strings("MOVE"), "relabelled MOVE")
-  T.eq(at, #menu.subItems, "in the place the engine put it, under STATS")
+  -- Directly under STATS, which is where PokemonMenuEntries puts it.  Not
+  -- "last": CANCEL was appended after it (engine #1833,
+  -- start_sub_menus.asm:71-75), and an assertion that read the row's place as
+  -- "the end of the list" has been failing ever since -- along with the four
+  -- below, which walked to the last row to find it and pressed A on CANCEL.
+  local statsAt = rowOf(menu.subItems or {}, "stats")
+  T.eq(at, (statsAt or 0) + 1, "in the place the engine put it, under STATS")
   local saidSwitch = false
   for _, entry in ipairs(menu.subItems) do
     if entry.label == Strings("SWITCH") then saidSwitch = true end
@@ -723,9 +729,11 @@ do
     local before = copyOf(party)
     local _, menu, press = driver(party)
     press("a")
-    local _, row = rowOf(menu.subItems or {}, "switch")
+    local switchAt, row = rowOf(menu.subItems or {}, "switch")
     T.eq(row and row.label, Strings("SWITCH"), "off, the popup says SWITCH")
-    for _ = 2, #menu.subItems do press("down") end
+    -- To the SWITCH row by its index, not to the end of the list: CANCEL sits
+    -- after it, and walking to the last row pressed A on CANCEL instead.
+    for _ = 2, switchAt or 1 do press("down") end
     press("a")
     T.eq(menu.moveFrom, nil, "nothing is lifted")
     T.eq(menu.swapFrom, 1, "the engine is waiting for a second pick")

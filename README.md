@@ -162,6 +162,42 @@ kept here so the mod behaves the same on either engine.
 
 ---
 
+## On Gold, Silver and Crystal
+
+The mod runs on the Gen 2 carts too, and it is deliberately not the same mod
+there. Red has no party screen worth keeping, so this one replaces it whole.
+Gold already has a good one — six rows, icons, HP bars, the lot — so nothing
+here replaces it. What this does instead is put the set's frame around the
+cart's own list and give it the two verbs the Gen 1 screen has.
+
+**The frame.** The same header and footer boxes, in the same rows, so a party
+opened next to the Pokédex still stops looking like a different game. The
+cart's list draws inside them, untouched.
+
+**Every POKéMON in its own colours.** Gold has exactly the bug this mod was
+written for: `drawIcon` colours all six rows out of one palette, so a party of
+six shares a single set of colours. Each row now gets its own species pair, for
+the length of one icon.
+
+**`SWITCH` carries.** Gold's own move is an *exchange* — pick two, and they
+trade places. That looks identical to Red's for a one-row move and comes apart
+the moment you go further: carrying the fourth member to the top should leave
+the three it passed in the order they were already in, and a swap trades the
+ends and leaves the middle alone. With `MOVE NOT SWITCH` on, UP and DOWN carry
+the held POKéMON a row at a time, the party reorders under it as it goes, the
+cursor and the `▷` ride along, and it flashes while it is in your hand. B walks
+it home. The letters ride with it, because `sPartyMail` is keyed by party slot
+and a member that changes rows without its mail arrives holding somebody
+else's.
+
+The popup row still says `SWITCH` there rather than `MOVE`. Red's popup has no
+other `MOVE`; Gold's does, and it is the move manager. The setting is named for
+the behaviour, which is the part that changes.
+
+Off, the cart's own switch is back, exactly as it shipped.
+
+---
+
 ## Options
 
 | Option | Default | What it does |

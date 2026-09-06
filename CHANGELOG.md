@@ -1,5 +1,53 @@
 # Changelog
 
+## 1.9.0
+
+- **Runs on Gold, Silver and Crystal.** The manifest now declares `gen2`, and
+  the mod takes a different shape there: Gold already has a good party screen,
+  so nothing replaces it. The set's header and footer frame goes around the
+  cart's own list, each row is coloured from its own species pair instead of
+  all six sharing one, and the START menu's row still says `PARTY`.
+
+- **`SWITCH` carries a POKéMON through the party on Gold**, instead of swapping
+  two of them. `MOVE NOT SWITCH` is now offered on both cartridges.
+
+  Gold's own move is an exchange: `beginSwitch` parks a `▷`, `updateSwitch`
+  walks the cursor, and A runs `_SwitchPartyMons` — one line,
+  `party[from], party[to] = party[to], party[from]`. The difference from Red's
+  carry only shows past one row: carrying the fourth member to the top should
+  leave the three it passed in the order they were already in, and a swap
+  trades the ends and leaves the middle alone.
+
+  UP and DOWN now carry the held member one row at a time, reordering the party
+  as they go, with the cursor and the held-row marker riding the POKéMON. The
+  array is reordered on every step rather than once at the end, because party
+  order is battle order — a list drawn in one order over an array stored in
+  another has a lead POKéMON nobody on screen can see. That is also why A
+  commits nothing and why B can walk it home exactly.
+
+  `sPartyMail` is keyed by party slot, so each single-row step is one
+  `Mail.swapSlots` pair — the other reason to move a row at a time rather than
+  jump — and only when the list is the save's own party. The carried row
+  flashes sixteen frames lit, eight dark, which is Red's box and party to the
+  frame.
+
+  The popup row keeps the word `SWITCH` on Gold, because Gold's popup already
+  has a `MOVE` and it is the move manager.
+
+- **The carried POKéMON flashes on a standalone install.** The flash needed to
+  know which row was being drawn, and it read a field the Gen1Wild bundle sets.
+  Installed on its own, nothing set it, so the one visible half of `MOVE` was
+  missing on exactly the installs with no bundle to fall back on. The row is
+  now recorded here, off the cart's own `iconX` call — the same seam, owned
+  rather than borrowed.
+
+- **The suite is green again.** Five checks had been failing since the engine
+  appended `CANCEL` to the party popup (gen1recomp #1833): one asserted the
+  `SWITCH` row was *last*, and four walked to the last row to find it and
+  pressed A on `CANCEL`. Both now navigate to the row by its index. No mod code
+  changed — the assertions were reading a list that had grown a row.
+
+
 ## 1.8.2
 
 - **The row the message box cuts through keeps its colours.** 1.8.1 dropped an

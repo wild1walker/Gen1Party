@@ -1,10 +1,11 @@
 {
   "id": "Gen1Party",
   "name": "Gen1Party",
-  "version": "1.8.2",
+  "version": "1.9.0",
   "api": 2,
   "games": [
-    "gen1"
+    "gen1",
+    "gen2"
   ],
   "entry": "main.lua",
   "profile": "content",
@@ -25,6 +26,6 @@
   "permissions": [
     "engine_internals"
   ],
-  "description": "The party menu drawn like the rest of the set: every POKeMON in its own species colours instead of all six sharing one, and the status and HP numbers pulled in off the screen edge so an FNT reads as placed rather than clipped. A replacement for how the party LOOKS, plus one verb: the popup's SWITCH becomes MOVE, which picks a POKeMON up so it flashes and travels through the list as the party reorders under it. Everything else keeps the engine's own rules -- the field menu, the battle switch, the item target, the TM/HM teach list and the SOFTBOILED donor.",
+  "description": "The party menu drawn like the rest of the set: every POKeMON in its own species colours instead of all six sharing one, and the status and HP numbers pulled in off the screen edge so an FNT reads as placed rather than clipped. A replacement for how the party LOOKS, plus one verb: the popup's SWITCH becomes MOVE, which picks a POKeMON up so it flashes and travels through the list as the party reorders under it. Everything else keeps the engine's own rules -- the field menu, the battle switch, the item target, the TM/HM teach list and the SOFTBOILED donor. Runs on Gold, Silver and Crystal too, where it frames the cart's own party list and gives its SWITCH the same carry.",
   "github": "wild1walker/Gen1Party"
 }

@@ -369,5 +369,20 @@ do
      "...and is no longer fenced off from Gold")
 end
 
+do
+  io.write("the party panel asks iconX on every row\n")
+  -- With RULED ICONS on -- the default -- the panel places the icon itself,
+  -- but iconX is still where the engine says which row is being drawn: the
+  -- carry's flash above, and Gen1WildUI's walk of the hovered icon, both read
+  -- it there.  Asked only with the rule off, neither ran on the default page.
+  local panelSrc = assert(slurp("gen2panel.lua"), "gen2panel.lua is readable")
+  ok(panelSrc:find("local engineX = self:iconX(i)", 1, true) ~= nil,
+     "iconX is asked for every row, rule or no")
+  ok(panelSrc:find("withRule and L.ICON_PX or self:iconX(i)", 1, true) == nil,
+     "not only when RULED ICONS is off")
+  ok(panelSrc:find("self:iconBob(i, mon)", 1, true) ~= nil,
+     "and iconBob is handed the POKeMON, for the cart's HP-band bob")
+end
+
 io.write(("partycarry: %d passed, %d failed\n"):format(passed, failed))
 os.exit(failed == 0 and 0 or 1)

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.9.1
+
+- **On Gold, the hovered POKéMON walks and the carried one flashes with RULED
+  ICONS on.** The party panel places the icon itself when the rule is on, and
+  only asked the engine's `iconX` when it was off. But `iconX` is where the
+  engine says which row is being drawn, and both the flash of the POKéMON
+  `MOVE` carries and Gen1WildUI's "only the hovered icon walks" read it there,
+  so on the default page neither ran: every icon stood still and the carried
+  one never blinked. It is asked on every row now.
+- **The hovered icon bobs by its HP**, as the cart's does: two pixels in the
+  green, one in the yellow, none in the red. A newer engine reads the band off
+  the POKéMON handed to `iconBob`, and the panel did not hand it one.
+
 ## 1.9.0
 
 - **Runs on Gold, Silver and Crystal.** The manifest now declares `gen2`, and
